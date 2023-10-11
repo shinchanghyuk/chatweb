@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import WebSocket from '../utils/webSocket';
 
-import { useNavigate, useLocation } from 'react-router-dom';
+// import { useNavigate, useLocation } from 'react-router-dom';
 import Modal from 'react-modal';
 import axios from 'axios';
 
-function MonetChat() {
-  // 웹소켓
+function MonetChat({ data, callback }) {
+
   // const [connected, setConnected] = useState(false);
   const [socket, setSocket] = useState(null);
 
@@ -26,27 +26,36 @@ function MonetChat() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // useNavigate을 사용하여 navigate 객체를 가져옴
-  const navigate = useNavigate();
-  const location = useLocation();
+  // 만약 monetMain와 monetChat 컴포넌트를 따로 쓸거면 이를 통해서 데이터 전달을 해야함
+  // const navigate = useNavigate();
+  // const location = useLocation();
 
   useEffect(() => {
-    console.log('monetChat - useEffect');
+    console.log('monetChat - useEffect, data : ', data);
   
     init();
-    console.log("monetChat - useEffect location.state : " + location.state);
 
-    setRoomid(location.state.roomid);
-    setTitle(location.state.title);
-    setUserData(location.state.userData)
+    // console.log("monetChat - useEffect location : " + location);
+    // console.log("monetChat - useEffect location.state : " + location.state);
+    
+    setRoomid(data.state.roomid);
+    setTitle(data.state.title);
+    setUserData(data.state.userData)
+
+    // 이미 웹 소켓이 접속되어있는 경우 이전의 웹 소켓을 끊음
+    if (socket) {
+      console.log('monetChat - useEffect, already socket, close');
+      socket.close();
+      setSocket(null);
+    }
   
     // WebSocket 연결 생성
-    const websocket = WebSocket.createWebSocket(sessionStorage.getItem("userid"), location.state.roomid);
+    const websocket = WebSocket.createWebSocket(sessionStorage.getItem("userid"), data.state.roomid);
 
     // 웹 소켓 연결이 열렸을 때 호출되는 이벤트 핸들러
     websocket.onopen = () => {
       console.log('웹 소켓 연결이 열렸습니다.');
       setSocket(websocket);
-      // setConnected(true);
     };
 
     // 웹 소켓 메시지를 수신했을 때 호출되는 이벤트 핸들러
@@ -63,11 +72,11 @@ function MonetChat() {
         // setConnected(false);
       }
     };
-  }, []);
+  }, [data]);
 
   // chatData 값이 변경되었을 때 동작
   useEffect(() => {
-    console.log("MonetChat - useEffect : ", chatData);
+    console.log("MonetChat - chatData useEffect : ", chatData);
   }, [chatData]);
 
   const init = () => {
@@ -106,7 +115,7 @@ function MonetChat() {
       data: {
         userid: searchUserid,
         username: searchUsername,
-        roomid: location.state.roomid,
+        roomid: data.state.roomid,
       }
     }).then(res => {
       console.log("monetChat - handleChatMessage res.data : ", res.data);
@@ -162,7 +171,7 @@ function MonetChat() {
     let sendData = {
       userid: userid,
       username: username,
-      roomid:location.state.roomid,
+      roomid:data.state.roomid,
       message:message,
       createtime:createtime,
     };
@@ -182,7 +191,9 @@ function MonetChat() {
   const handleExit = () => {
     console.log("monetChat - handleExit");
 
-    navigate('/monetMain'); // '/monetRegister' 경로로 이동
+    // navigate('/monetMain'); // '/monetRegister' 경로로 이동
+
+    callback('chatroom exit success');
 
     // 채팅방 웹 소켓 종료
     if (socket) {
@@ -295,7 +306,7 @@ function MonetChat() {
 
   return (
     <div>
-      <h2>채팅방화면</h2>
+      <h2>채팅방</h2>
       <table>
         <thead>
           <tr>

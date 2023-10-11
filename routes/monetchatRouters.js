@@ -73,8 +73,8 @@ router.post('/enter', (req, res) => {
             }
         });
 
-    } else { // 사용자를 클릭했을 때
-        const query = 'SELECT count(*) AS roomcnt, roomid, title FROM t_chatroom WHERE status=1 AND roomid IN (' +
+    } else { // 사용자를 클릭했을 때, 1대1방만 체크하도록 함
+        const query = 'SELECT count(*) AS roomcnt, roomid, title FROM t_chatroom WHERE status=1 AND chattype=1 AND roomid IN (' +
             'SELECT roomid FROM t_chataccount WHERE userid = ? AND status=1 AND roomid IN (' +
             'SELECT roomid FROM t_chataccount WHERE userid = ? AND status=1))';
         const values = [req.body.userid, req.body.touserid];
@@ -266,30 +266,42 @@ router.post('/invite', (req, res) => {
     monetchatDB.executeQuery(query, values, function(err, rows) {
         if(!err) {
             console.log('monetchatRouters - invite chatAccount user check');
-            let accountCount = rows[0].totcnt+1;
-
+         
             // 신규 사용자일 때
             if(rows[0].totcnt == 0 ){
-                // t_chatAccount에 해당 사용자 삽입
-                const query = 'INSERT INTO t_chatAccount (roomid, userid, username, createtime) VALUES(?, ?, ?, ?)';
-                const values = [req.body.roomid, req.body.userid, req.body.username, createtime];
+                // 1대1 방이 아니라 다중방이 되었기 때문에 chatType을 변경함
+                const query = 'UPDATE t_chatRoom SET chatType=2 WHERE roomid=? AND chatType=1';
+                const values = [req.body.roomid];
                 
                 monetchatDB.executeQuery(query, values, function(err, rows) {
                     if(!err) {
-                        console.log('monetchatRouters - invite chatInfo insert executeQuery');
+                        console.log('monetchatRouters - invite chatRoom type Change executeQuery');
+
+                        // t_chatAccount에 해당 사용자 삽입
+                        const query = 'INSERT INTO t_chatAccount (roomid, userid, username, createtime) VALUES(?, ?, ?, ?)';
+                        const values = [req.body.roomid, req.body.userid, req.body.username, createtime];
                         
-                        // 동기작업
-                        const invitePromises = [webSocket.inviteMessageSend(req.body.roomid, req.body.userid, req.body.username, accountCount)];
-                        // webSocket.inviteMessageSend(req.body.roomid, req.body.userid, req.body.username, accountCount);
-                        
-                        Promise.all(invitePromises).then(() => {
-                            console.log('monetchatRouters - invite chatInfo Promise');
-                            res.status(200).json({ message: 'chatroom invite success' });
-                        }).catch((error) => {
-                            res.status(500).json({ message: error });
+                        monetchatDB.executeQuery(query, values, function(err, rows) {
+                            if(!err) {
+                                console.log('monetchatRouters - invite chatInfo insert executeQuery');
+                                
+                                // 동기작업
+                                const invitePromises = [webSocket.inviteMessageSend(req.body.roomid, req.body.userid, req.body.username)];
+                                // webSocket.inviteMessageSend(req.body.roomid, req.body.userid, req.body.username, accountCount);
+                                
+                                Promise.all(invitePromises).then(() => {
+                                    console.log('monetchatRouters - invite chatInfo Promise');
+                                    res.status(200).json({ message: 'chatroom invite success' });
+                                }).catch((error) => {
+                                    res.status(500).json({ message: error });
+                                });
+                            } else {
+                                console.log('monetchatRouters - invite chatInfo insert executeQuery Exception : ', err);
+                                res.status(500).send(err);
+                            }
                         });
                     } else {
-                        console.log('monetchatRouters - invite chatInfo insert executeQuery Exception : ', err);
+                        console.log('monetchatRouters - invite chatRoom type Change executeQuery Exception : ', err);
                         res.status(500).send(err);
                     }
                 });
