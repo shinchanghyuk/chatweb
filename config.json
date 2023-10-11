@@ -1,0 +1,12 @@
+{
+    "database": {
+      "host": "localhost",
+      "user": "monetchat",
+      "password": "password!",
+      "database": "monetchatDB"
+    },
+    "email": {
+      "user": "monetchat@gmail.com",
+      "password": "aqfjijgscgfzbfmr"
+    }
+  }
