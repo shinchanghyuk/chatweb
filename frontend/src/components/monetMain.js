@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 import Modal from 'react-modal';
 import axios from 'axios';
+
+import MonetChat from './monetChat';
 
 Modal.setAppElement('#root'); // 모달을 렌더링할 루트 요소 지정
 
@@ -20,8 +22,12 @@ function MonetMain() {
   const [deleteRoomid, setDeleteRoomid] = useState('');
   const [deleteRoomTitle, setDeleteRoomTitle] = useState('');
 
+  const [chatStatus, setChatStatus] = useState(false);
+  const [data, setData] = useState('');
+
   // useNavigate을 사용하여 navigate 객체를 가져옴
-  const navigate = useNavigate();
+  // 만약 monetMain와 monetChat 컴포넌트를 따로 쓸거면 이를 통해서 데이터 전달을 해야함
+  // const navigate = useNavigate();
 
   useEffect(() => {
     init();
@@ -29,6 +35,16 @@ function MonetMain() {
     handleUserSearch();
 
   }, [userid, username, usertype]); // userid, username, usertype 상태가 변경될 때만 실행
+
+  useEffect(() => {
+    console.log("MonetMain - chatStatus useEffect");
+
+    if (data === undefined || data === '' || data.length === 0) {
+      setChatStatus(false);
+    } else {
+      setChatStatus(true);
+    }
+  }, [data]);
 
   const init = () => {
     console.log("MonetMain - init");
@@ -98,16 +114,22 @@ function MonetMain() {
     });
   }
 
-  const handleEnter = async (data, type) => {
+  // 채팅방 또는 사용자에 대한 채팅버튼을 눌렀을 때
+  const handleEnter = async (param, type) => {
     let touserid = '';
     let roomid = '';
 
     console.log("MonetMain - handleEnter");
 
+    // // 연결된 채팅방 없을 때 채팅버튼을 눌렀을 경우
+    // if(data === undefined || data === '' || data.length === 0) {
+    //   console.log("MonetMain - handleEnter, socket already close");
+    // } 
+  
     if(type === 'user') {
-      touserid = data;
+      touserid = param;
     } else if(type === 'room') {
-      roomid = data;
+      roomid = param;
     }
 
     await axios({
@@ -128,7 +150,9 @@ function MonetMain() {
           // navigate('/monetChat'); // '/monetRegister' 경로로 이동
 
           // userData는 채팅방에 들어가서 초대하는 기능으로 인하여 추가함
-          navigate('/monetChat', { state: { roomid: res.data.roomid, title: res.data.title, userData: userData} });
+          // data가 변경되면 monetChat useEffect가 실행됨
+          setData({ state : { roomid: res.data.roomid, title: res.data.title, userData: userData}});
+          // navigate('/monetChat', { state: { roomid: res.data.roomid, title: res.data.title, userData: userData} });
         } else {
             alert("채팅창 들어가기에 실패하였습니다.");
         }
@@ -156,7 +180,7 @@ function MonetMain() {
           // 모달종료
           handleCloseModal();
 
-          // 나간 채팅방을 제욓고 RoomData를 다시 생성함
+          // 나간 채팅방을 제외하고 RoomData를 다시 생성함
           setRoomData(prevRoomData => prevRoomData.filter(roomData => roomData.roomid !== deleteRoomid));
           console.log("MonetMain - handleExit setRoomData :", roomData);
           // navigate('/monetChat'); // '/monetRegister' 경로로 이동
@@ -185,6 +209,23 @@ function MonetMain() {
     setDeleteRoomid('');
     setDeleteRoomTitle('');
   };
+
+  // monetChat 컴포넌트가 전달한 메세지
+  // 채팅방 나가기 버튼 눌렀을 때 사용함
+  const handleDataFromMonetChat = (message) => {
+    console.log("MonetMain - handleDataFromMonetChat, message : ", message);
+
+    if(message === 'chatroom exit success') {
+      setData('');
+    }
+  };
+
+  // monetChat 컴포넌트가 전달한 메세지
+  // 
+  const handleSocketChange = () => {
+
+  }
+
 
   return (
     <div>
@@ -232,7 +273,12 @@ function MonetMain() {
           <button type="button" onClick={handleExit}>확인</button>
           <button type="button" onClick={handleCloseModal}>취소</button>
         </Modal>
-
+        
+        {/* 채팅방 컴포넌트 - 채팅방 입장 눌렀을 때 chatStatus 값은 true가 됨*/}
+        {!chatStatus ? null : (
+          <MonetChat data={data} callback={handleDataFromMonetChat} />
+          // <MonetChat location={location} />
+        )}
         {/* <button type="button" onClick={() => handleCreate(room.roomid)}>채팅방 입장</button> */}
         {/* <button type="button" onClick={init}>초기화</button> */}
         
@@ -248,5 +294,6 @@ function MonetMain() {
     </div>
   );
 };
+
 
 export default MonetMain; 

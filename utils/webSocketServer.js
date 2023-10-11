@@ -400,7 +400,8 @@ function exitMessageSend(roomid, userid, username, accountCount) {
     }
 }
 
-function inviteMessageSend(roomid, userid, username, accountCount) { 
+// 채팅방에서 다른 사용자 초대했을 때 동작
+function inviteMessageSend(roomid, userid, username) { 
     console.log('webSocketServer - inviteMessageSend');
 
     return new Promise((resolve, reject) => {
@@ -411,6 +412,7 @@ function inviteMessageSend(roomid, userid, username, accountCount) {
        
         monetchatDB.executeQuery(query, values, function(err, rows) {
             if(!err) {
+                let accountCount = rows[0].totcnt;
                 console.log('webSocketServer - inviteMessageSend chatAccount search executeQuery');
      
                 let createtime = dateFormat();
