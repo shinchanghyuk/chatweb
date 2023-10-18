@@ -25,25 +25,35 @@ router.post('/', (req, res) => {
 
     if (req.body.searchType === 'user') {
         // 다른 사용자 정보 데이터 조회 쿼리 - 그룹도 추가해야할 수도 있을 듯함
-        query = 'SELECT * FROM t_account WHERE userid !=?';
+        query = 'SELECT * FROM t_account WHERE userid !=? AND status=1';
         values = [req.body.userid];
         message = 'chatuser search success';
     } else if(req.body.searchType === 'room') {
         // 채팅방 데이터 조회 쿼리
-        query = 'SELECT cr.*, ca.* FROM t_chatroom cr LEFT JOIN t_chatAccount ca ON cr.roomid = ca.roomid ' +
+        query = 'SELECT cr.*, COUNT(ca.userid) AS userCount FROM t_chatroom cr LEFT JOIN t_chatAccount ca ON cr.roomid = ca.roomid ' +
         'WHERE cr.roomid IN (SELECT roomid FROM t_chataccount WHERE userid = ? AND status = 1) ' +
-        'AND ca.userid = ? AND cr.status = 1 AND ca.status = 1';
-        values = [req.body.userid, req.body.userid];
+        'AND cr.status = 1 AND ca.status = 1 GROUP BY cr.roomid';
+        values = [req.body.userid];
         message = 'chatroom search success';
     }
 
     monetchatDB.executeQuery(query, values, function(err, rows) {
         if(!err) {
-        let result = rows;
-        res.status(200).json({ result: result, message: message });
+            let result = rows;
+            
+            if (req.body.searchType === 'user') {
+                webSocket.userConnectionSearch(result).then(updatedResult => {
+                    console.log('monetchatRouters, Updated user list : ', updatedResult);
+                    result = updatedResult;
+                }).catch(error => {
+                    console.error('monetchatRouters, Updated user list Exception : ', error);
+                });
+            }
+
+            res.status(200).json({ result: result, message: message });
         } else { 
-        console.log('monetchatRouters, executeQuery Exception  : ', err);
-        res.status(500).send(err);
+            console.log('monetchatRouters, executeQuery Exception  : ', err);
+            res.status(500).send(err);
         }
     });
 });
@@ -65,7 +75,7 @@ router.post('/enter', (req, res) => {
                 
                 // 기존에 채팅한 데이터가 있을경우
                 if(rows[0].roomcnt > 0) {
-                    res.status(200).json({ roomid: req.body.roomid, title: rows[0].title, message: 'chatroom enter success' });
+                    res.status(200).json({ roomid: req.body.roomid, title: rows[0].title, message: 'existing chatroom enter success' });
                 } else { }      
             } else { 
                 console.log('monetchatRouters - enter executeQuery Exception  : ', err);
@@ -86,7 +96,7 @@ router.post('/enter', (req, res) => {
  
                 if(result > 0) { // 기존의 채팅을 했을경우
                     // 기존 채팅데이터가 있을 경우
-                    res.status(200).json({ roomid: rows[0].roomid, title: rows[0].title, message: 'chatroom enter success' });
+                    res.status(200).json({ roomid: rows[0].roomid, title: rows[0].title, message: 'existing chatroom enter success' });
                 } else { 
                     // const roomid = 'ee30bc94deab4e49bcd74dd5b9a29e65';
                     const roomid = uuid.v4().replace(/-/g, '');
@@ -120,7 +130,7 @@ router.post('/enter', (req, res) => {
                                 monetchatDB.executeQuery(queries[i], values[i], function(err, rows) {
                                     if(!err) {
                                         if(i+1 == queries.length) {
-                                            res.status(200).json({ roomid: roomid, title: title, message: 'chatroom enter success' });
+                                            res.status(200).json({ roomid: roomid, title: title, message: 'new chatroom enter success' });
                                         }
                                     } else { 
                                         console.log('routers - enter executeQuery Exception  : ', err);
@@ -167,7 +177,7 @@ router.post('/chatmessage', (req, res) => {
 // monet 채팅서비스 채팅방 나가기 API
 router.post('/exit', (req, res) => {
     // 나간 사용자의 테이블 status 변경
-
+    console.log('moentChatRouters - exit, req.body : ', req.body);
     let deletetime = dateFormat();
     let accountCount = '';
     const query = 'UPDATE t_chatAccount SET status=0, deletetime=? WHERE roomid=? AND userid=? AND status=1';
@@ -209,35 +219,6 @@ router.post('/exit', (req, res) => {
                         }
                     } else { // 사용자가 있을경우
                         webSocket.exitMessageSend(req.body.roomid, req.body.userid, req.body.username, accountCount);
-
-                        // webSocket.exitMessageSend(req.body.roomid, req.body.userid, req.body.username, message);
-                        // const clientsInfo = webSocket.clientsRoom.get(roomid);
-
-                        // let message = rqe.body.username + "님이 채팅방을 퇴장하였습니다.";
-                        // let createtime = dateFormat();
-
-                        // // 채팅방에 남아있는 사용자에게 나갔다는 메세지 전송
-                        // for (const client of clientsInfo) {
-                        //     if (client.ws !== null && client.ws.readyState === 1) {
-                        //         if(userid !== client.userid) {
-                        //             client.ws.send(JSON.stringify({message: message}));
-                        //         }
-                                
-                        //         const query = 'INSERT INTO t_chatMessage (roomid, senderid, sendername, chatmessage, createtime, readcount, accountCount) VALUES (?, ?, ?, ?, ?, ?, ?)';
-                        //         const values = [req.body.roomid, req.body.userid, req.body.username, message, createtime, webSocket.clientsRoom.get(roomid).length, rows[0].totcnt];
-                        
-                        //         monetchatDB.executeQuery(query, values, function(err, rows) {
-                        //             if(!err) {
-                        //                 console.log('monetchatRouters - exit chatRoom message Insert executeQuery');
-                        //             } else { 
-                        //                 console.log('monetchatRouters - exit chatRoom message Insert executeQuery Exception : ', err);
-                        //                 res.status(500).send(err);
-                        //             }
-                        //         });
-                        //     } else {
-                        //         console.log("webSocketServer - ws close client.ws.readyState : ", client.ws.readyState);
-                        //     }
-                        // }
                     }
     
                     res.status(200).json({ message: 'chatroom exit success' });
@@ -286,7 +267,7 @@ router.post('/invite', (req, res) => {
                                 console.log('monetchatRouters - invite chatInfo insert executeQuery');
                                 
                                 // 동기작업
-                                const invitePromises = [webSocket.inviteMessageSend(req.body.roomid, req.body.userid, req.body.username)];
+                                const invitePromises = [webSocket.inviteMessageSend(req.body.roomid, req.body.title, req.body.userid, req.body.username)];
                                 // webSocket.inviteMessageSend(req.body.roomid, req.body.userid, req.body.username, accountCount);
                                 
                                 Promise.all(invitePromises).then(() => {
@@ -313,6 +294,18 @@ router.post('/invite', (req, res) => {
         }
     });
 });
+
+
+// // // 나머지 URL에 대한 요청을 재로그인 라우터로 리다이렉트
+// router.get('/*', (req, res) => {
+//     console.log('routers - GET not existing URL');
+//     res.sendFile(path.resolve('frontend/build/index.html'));
+// });
+
+// router.post('/*', (req, res) => {
+//     console.log('routers - POST not existing URL');
+//     res.sendFile(path.resolve('frontend/build/index.html'));
+// });
 
 // 현재시간 yyyymmddhhmmss 형식으로 변경해주는 함수
 function dateFormat() {

@@ -2,12 +2,16 @@ import React, { useState, useEffect } from 'react';
 import WebSocket from '../utils/webSocket';
 
 // import { useNavigate, useLocation } from 'react-router-dom';
-import Modal from 'react-modal';
 import axios from 'axios';
 
-function MonetChat({ data, callback }) {
+// 부트스트랩
+import 'bootstrap/dist/css/bootstrap.css';
+import '../monetChat.css';
 
-  // const [connected, setConnected] = useState(false);
+// 모달
+import MoentModal from './monetModal';
+
+function MonetChat({ data, callback }) {
   const [socket, setSocket] = useState(null);
 
   // 데이터
@@ -25,6 +29,8 @@ function MonetChat({ data, callback }) {
   const [chatData, setChatData] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const maxCharacters = 30;
+
   // useNavigate을 사용하여 navigate 객체를 가져옴
   // 만약 monetMain와 monetChat 컴포넌트를 따로 쓸거면 이를 통해서 데이터 전달을 해야함
   // const navigate = useNavigate();
@@ -34,19 +40,22 @@ function MonetChat({ data, callback }) {
     console.log('monetChat - useEffect, data : ', data);
   
     init();
-
-    // console.log("monetChat - useEffect location : " + location);
-    // console.log("monetChat - useEffect location.state : " + location.state);
-    
-    setRoomid(data.state.roomid);
-    setTitle(data.state.title);
-    setUserData(data.state.userData)
-
+        
     // 이미 웹 소켓이 접속되어있는 경우 이전의 웹 소켓을 끊음
     if (socket) {
       console.log('monetChat - useEffect, already socket, close');
       socket.close();
       setSocket(null);
+    }
+
+    // data가 빈 값인 경우는 채팅방을 나갔을 때임
+    if(data === undefined || data === '' || data.length === 0) {
+      console.log('monetChat - useEffect data empty, return');
+      return; 
+    } else {
+      setRoomid(data.state.roomid);
+      setTitle(data.state.title);
+      setUserData(data.state.userData)    
     }
   
     // WebSocket 연결 생성
@@ -54,7 +63,7 @@ function MonetChat({ data, callback }) {
 
     // 웹 소켓 연결이 열렸을 때 호출되는 이벤트 핸들러
     websocket.onopen = () => {
-      console.log('웹 소켓 연결이 열렸습니다.');
+      console.log('채팅방 웹 소켓 연결이 열렸습니다.');
       setSocket(websocket);
     };
 
@@ -88,6 +97,23 @@ function MonetChat({ data, callback }) {
       setUsertype(sessionStorage.getItem("usertype"));
   }
 
+  const dateFormatModify = (createtime) => {
+
+    if(createtime !== undefined && createtime !== '' && createtime.length > 0) {
+      var year = createtime.substring(0, 4);   
+      var month = createtime.substring(4, 6); 
+      var day = createtime.substring(6, 8);
+      var hour = createtime.substring(8, 10);
+      var minute = createtime.substring(10, 12);
+      var second = createtime.substring(12, 14);
+
+      const formattedDate = `${year}-${month}-${day}`;
+      const formattedTime = `${hour}:${minute}:${second}`;
+    
+      return `${formattedDate} ${formattedTime}`;
+    }
+  }
+    
   // 기존 채팅 데이터 검색
   const handleChatMessage = () => {
     console.log("MonetChat - handleChatMessage");
@@ -124,7 +150,7 @@ function MonetChat({ data, callback }) {
           const chatListData = res.data.result.map(item => ({
             senderid: item.senderid,
             sendername: item.sendername,
-            message: item.chatmessage,
+            message: insertLineBreaks(item.chatmessage, maxCharacters),
             createtime: item.createtime,
             readCount: item.accountCount - item.readCount
           }));
@@ -172,6 +198,7 @@ function MonetChat({ data, callback }) {
       userid: userid,
       username: username,
       roomid:data.state.roomid,
+      title:data.state.title,
       message:message,
       createtime:createtime,
     };
@@ -219,9 +246,26 @@ function MonetChat({ data, callback }) {
       handleChatMessage();
     } else {
       console.log("monetChat - handleReceiveMessage, userid : ", receivedMessage.userid + " username : " + receivedMessage.username);
-      setChatData(prevRoomData => [...prevRoomData, { senderid: receivedMessage.userid, sendername : receivedMessage.username, message: receivedMessage.message, createtime: receivedMessage.createtime, readCount: receivedMessage.accountCount - receivedMessage.readCount}]);
+      setChatData(prevRoomData => [...prevRoomData, { senderid: receivedMessage.userid, sendername : receivedMessage.username, message: insertLineBreaks(receivedMessage.message, maxCharacters), createtime: receivedMessage.createtime, readCount: receivedMessage.accountCount - receivedMessage.readCount}]);
     }
   };
+
+  const handleOpenModal = () => {
+    console.log("monetChat - handleOpenModal");
+
+    setIsModalOpen(true);
+  };
+
+  const handleDataFromMonetModal = (message) => {
+    console.log("monetChat - handleDataFromMonetModal, message : ", message);
+
+    if(message !== undefined && message !== '' && message.message === 'chatroom invite success') {
+      handleInvite(message.userid, message.username, roomid);
+    }
+
+    setIsModalOpen(false);
+  };
+
 
   const handleInvite = (userid, username, roomid) => {
     console.log("monetChat - handleInvite, userid : " + userid + ", username : " + username + ", roomid : " + roomid);
@@ -238,36 +282,7 @@ function MonetChat({ data, callback }) {
     }).then(res => {
       console.log("monetChat - handleInvite res.data : ", res.data);
         if(res.status === 200 && res.data.message === 'chatroom invite success') {
-
           alert(username + "님을 초대하였습니다.");
-
-          // const chatListData = res.data.result.map(item => ({
-          //   senderid: item.senderid,
-          //   sendername: item.sendername,
-          //   message: item.chatmessage,
-          //   createtime: item.createtime,
-          //   readCount: item.accountCount - item.readCount
-          // }));
-
-          // setChatData(chatListData);
-          
-          // for(let i = 0; i < res.data.result.length; i++) { 
-          //   // setChatData(prevChatData => [...prevChatData, { senderid: res.data.result[i].senderid, sendername: res.data.result[i].sendername,
-          //   //   message: res.data.result[i].chatmessage, createtime: res.data.result[i].createtime, readCount: res.data.result[i].accountCount - res.data.result[i].readCount}]);
-          //   setChatData([{senderid: res.data.result[i].senderid, sendername: res.data.result[i].sendername,
-          //     message: res.data.result[i].chatmessage, createtime: res.data.result[i].createtime, readCount: res.data.result[i].accountCount - res.data.result[i].readCount}]);
-          // }
-
-          // console.log("monetChat - handleChatMessage chatData : ", chatData);
-
-          // handleConnect(roomid);
-
-          // // setTouserid(userid + Math.floor(Math.random() * 10000));
-          // // setTouserid('shin');
-
-          // setRoomid(res.data.roomid);
-          // setSocket(WebSocket.connect(userid, roomid));
-          // setConnected(true);
         } else if(res.status === 200 && res.data.message.startsWith('chatroom invite fail')) {
           alert("이미 채팅방에 있는 사용자입니다.");
         } else {
@@ -276,18 +291,6 @@ function MonetChat({ data, callback }) {
     }).catch(err => {
       alert(err);
     });
-  };
-
-  const handleOpenModal = () => {
-    console.log("MonetMain - handleOpenModal");
-
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    console.log("MonetMain - handleCloseModal");
-
-    setIsModalOpen(false);
   };
 
   // 현재시간 yyyymmddhhmmss 형식으로 변경해주는 함수
@@ -304,70 +307,71 @@ function MonetChat({ data, callback }) {
     return `${year}${month}${day}${hours}${minutes}${seconds}`;
   }
 
+  function insertLineBreaks(message, maxCharacters) {
+    if (message.length <= maxCharacters) {
+      return message; // 30자 미만이면 그대로 반환
+    }
+
+    const messageParts = [];
+    for (let i = 0; i < message.length; i += maxCharacters) {
+      messageParts.push(message.substr(i, maxCharacters));
+    }
+
+    return messageParts.join('\n'); // 줄바꿈 문자를 사용하여 합침
+  }
+
+
   return (
     <div>
-      <h2>채팅방</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>작성자</th>
-            <th>메세지</th>
-          </tr>
-        </thead>
-        <tbody>
-          {chatData.map((chat) => (
-            <tr key={chat.senderid}>
-              {(chat.message.endsWith("초대되었습니다.") || chat.message.endsWith("퇴장하였습니다.")) ? null : (
-                <td>{chat.sendername}</td>
-              )}
-              <td>{chat.message}</td>
-              {/* readCount가 0이면 사용자에게 보여줄 필요없음
-              readCount는 이 채팅메세지를 안읽은 수를 뜻함 */}
-              {(isNaN(parseInt(chat.readCount)) || parseInt(chat.readCount) === 0) || 
-                (chat.message.endsWith("초대되었습니다.") || chat.message.endsWith("퇴장하였습니다.")) ? null : (
-                <td>{chat.readCount}</td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-        </table>
+      <div className="chat-button">
+        <button type="button" className={'btn btn-primary mr-sm-2'} onClick={() => handleOpenModal()}>채팅방 초대</button>
+        <button type="button" className={'btn btn-primary mr-sm-4'} onClick={() => handleExit()}>채팅방 나가기</button>
+      </div>
+      <div className="chat">
+        <div className="chat-header clearfix">
+          <div className="row">
+            <div className="col-lg-6">
+              <div className="chat-about mb-2">
+                {data.state && (
+                  <h6 className="m-b-0">{data.state.title}</h6>
+                )}
+                {/* <small>Last seen: 2 hours ago</small> */}
+              </div>
+            </div>
+          </div>
+          <div className="chat-history">
+            {chatData.map((chat) => (
+                <div className={`mt-2 ${chat.message.endsWith("초대되었습니다.") || chat.message.endsWith("퇴장하였습니다.") ? 'text-center' : (chat.senderid === userid ? 'text-left' : 'text-right')}`}>
+                  {dateFormatModify(chat.createtime)}
+                  <div className={`mt-2 ${chat.message.endsWith("초대되었습니다.") || chat.message.endsWith("퇴장하였습니다.") ? 'text-center' : (chat.senderid === userid ? 'chat-message-left pb-4' : 'chat-message-right mb-4')}`}>
+                    <div>
+                      <div className={`text-muted small text-nowrap mt-4 ${chat.message.endsWith("초대되었습니다.") || chat.message.endsWith("퇴장하였습니다.")  || chat.readCount === 0 || chat.senderid === userid ? 'hidden' : '' }`}>{chat.readCount}</div>
+                    </div>
 
-        <Modal isOpen={isModalOpen} onRequestClose={handleCloseModal} contentLabel="채팅방 초대">
-            <h2>채팅방 초대</h2>
+                    <div className={`flex-shrink-1 bg-light rounded py-2 px-3 chat-message ${chat.message.endsWith("초대되었습니다.") || chat.message.endsWith("퇴장하였습니다.") ? '' : (chat.senderid === userid ? 'ml-3' : 'mr-3')}`}>
+                      <div className={`font-weight-bold mb-1 ${chat.message.endsWith("초대되었습니다.") || chat.message.endsWith("퇴장하였습니다.") ? 'hidden' : ''}`}>{chat.sendername}</div>
+                      <div>{chat.message}</div>
+                    </div>
+                    <div>
+                      <div className={`text-muted small text-nowrap mt-4 ml-3 ${chat.message.endsWith("초대되었습니다.") || chat.message.endsWith("퇴장하였습니다.")  || chat.readCount === 0 || chat.senderid !== userid ? 'hidden' : '' }`}>{chat.readCount}</div>
+                    </div>
+                  </div>  
+                </div>                 
+            ))}
+          </div>
+  
+          <div class="flex-grow-0 py-3 border-top">
+            <div class="input-group">
+              <textarea className="form-control" value={message} onChange={(e) => setMessage(e.target.value)}></textarea>
+              <button type="button" class="btn btn-primary ml-3" onClick={() => handleSendMessage(dateFormat())}>메세지 전송</button>              
+            </div>
+          </div>
 
-            <table>
-              <thead>
-                <tr>
-                  <th>사용자</th>
-                </tr>
-              </thead>
-              <tbody> 
-                {userData.map((user) => (
-                  <tr key={user.userid}>
-                    <td>{user.username}</td>
-                    <button type="button" onClick={() => handleInvite(user.userid, user.username, roomid)}>초대</button>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <button type="button" onClick={handleCloseModal}>닫기</button>
-          </Modal>
-      <form>  
-        <div>     
-          <label>Message:</label>
-          <input type="text" value={message} onChange={(e) => setMessage(e.target.value)}/>
-          <button type="button" onClick={() => handleSendMessage(dateFormat())}>메세지 전송</button>
-          {/* <button type="button" onClick={handleSendMessage(dateFormat())}>메세지 전송</button> */}
-          <button type="button" onClick={handleExit}>채팅방 나가기</button>
+          {!isModalOpen ? null : (
+            <MoentModal data={userData} callback={handleDataFromMonetModal} />
+          )}
         </div>
-        <div>
-          <button type="button" onClick={handleOpenModal}>채팅방 초대</button>
-        </div>
-      </form>
-
-      {/* <button type="button" onClick={init}>초기화</button> */}
-      {/* <button type="button" onClick={handleConnect} disabled={connected}>웹 소켓 연결</button> */}
-      {/* <button type="button" onClick={handleDisconnect} disabled={!connected}>웹 소켓 연결해제</button> */}
+      </div>
     </div>
   );
 };
