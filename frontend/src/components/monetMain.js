@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
-// import { useNavigate } from 'react-router-dom';
-import Modal from 'react-modal';
+
 import axios from 'axios';
 
 import MonetChat from './monetChat';
+import MonetModal from './monetModal';
+import WebSocket from '../utils/webSocket';
 
-Modal.setAppElement('#root'); // 모달을 렌더링할 루트 요소 지정
+// 부트스트랩
+import 'bootstrap/dist/css/bootstrap.css';
+import '../monetChat.css'; 
 
 function MonetMain() {
   const [userid, setUserid] = useState('');
+  const [socket, setSocket] = useState(null);
 
   const [username, setUsername] = useState('');
   const [usertype, setUsertype] = useState('');
@@ -19,9 +23,10 @@ function MonetMain() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // 모달에 사용되는 변수
-  const [deleteRoomid, setDeleteRoomid] = useState('');
-  const [deleteRoomTitle, setDeleteRoomTitle] = useState('');
+  const [deleteRoomData, setDeleteRoomData] = useState([]);
 
+  // const [lastSelectedRoomid, setLastSelectedRoomid] = useState('');
+  
   const [chatStatus, setChatStatus] = useState(false);
   const [data, setData] = useState('');
 
@@ -30,17 +35,20 @@ function MonetMain() {
   // const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("MonetMain - userid useEffect");
     init();
-    handleChatroomSearch();
-    handleUserSearch();
 
   }, [userid, username, usertype]); // userid, username, usertype 상태가 변경될 때만 실행
 
   useEffect(() => {
     console.log("MonetMain - chatStatus useEffect");
 
-    if (data === undefined || data === '' || data.length === 0) {
+    // data가 빈값인 경우는 채팅방을 나갔을 때임
+    if (data === undefined || data === '') {
       setChatStatus(false);
+
+      handleChatroomSearch();
+      handleUserSearch();
     } else {
       setChatStatus(true);
     }
@@ -52,30 +60,168 @@ function MonetMain() {
     setUserid(sessionStorage.getItem("userid"));
     setUsername(sessionStorage.getItem("username"));
     setUsertype(sessionStorage.getItem("usertype"));
+
+    console.log("MonetMain - init, userid : " + userid + ", username : " + username + ", usertype : " + usertype);
+
+    // userid
+    if(userid !== undefined && userid !== '') {
+      notificationPermission();
+
+      if (socket) {
+        console.log('monetChat - useEffect, already socket, close');
+        socket.close();
+        setSocket(null);
+      }
+
+      userWebSocket();
+    }
+  }
+
+  const userWebSocket = () => {
+      // WebSocket 연결 생성
+      const websocket = WebSocket.createWebSocket(sessionStorage.getItem("userid"), '');
+
+      // 웹 소켓 연결이 열렸을 때 호출되는 이벤트 핸들러
+      websocket.onopen = () => {
+        console.log('사용자 웹 소켓 연결이 열렸습니다.');
+        setSocket(websocket);
+      };
+  
+      // 웹 소켓 메시지를 수신했을 때 호출되는 이벤트 핸들러
+      // 초대 되었거나, 방에 있지 않을 때 메세지가 도착하면 알림
+      websocket.onmessage = (event) => {
+        const message = event.data;
+        handleReceiveMessage(message);
+      };
+  }
+
+  const notificationPermission = async () => {
+    console.log("MonetMain - notificationPermission");
+
+    Notification.requestPermission().then(function (permission) {
+      if (permission === 'granted') {
+        console.log("MonetMain - notificationPermission, permission grated");
+      } else {
+        console.log('MonetMain - notificationPermission, permission denied');
+      }
+    });
+  }
+
+  const handleReceiveMessage = (message) => {
+    const receivedMessage = JSON.parse(message);
+
+    console.log("MonetMain - handleReceiveMessage, message : ", receivedMessage);
+
+    if(receivedMessage.message.endsWith("에 초대되었습니다.")) {
+      if(roomData.length > 0) { // 기존 열려있는 채팅방이 있을경우
+        setRoomData(prevRoomData => [...prevRoomData, { roomid: receivedMessage.roomid, title: receivedMessage.title, count: receivedMessage.userCount}]);
+      } else { // 없을경우
+        const roomData = {
+          roomid: receivedMessage.roomid,
+          title: receivedMessage.title,
+          count: receivedMessage.userCount
+        }
+
+        setRoomData(roomData);
+      }
+    } else if(receivedMessage.message === "새로운 메세지가 도착하였습니다.") {
+      // 노티를 사용하여 사용자에게 알림 줄 예정
+      handleNotificationShow(receivedMessage);
+    } else if(receivedMessage.message.endsWith("님이 로그인 하였습니다.") || receivedMessage.message.endsWith("님이 로그아웃 하였습니다.")) {
+      // handleUserSearch();
+ 
+      setUserData(prevUserData => {
+        return prevUserData.map(user => {
+          if (user.userid === receivedMessage.userid) {
+            console.log('MonetMain - handleReceiveMessage, user.userid : ' + user.userid + ', receivedMessage.userid : ' +  receivedMessage.userid);
+            if(receivedMessage.message.endsWith("님이 로그인 하였습니다.")) {
+              return { ...user, status: 1 };
+            } else {
+              return { ...user, status: 0 };
+            }
+          }
+
+          return user;
+        });
+      });
+    }
+  };
+
+  const handleNotificationShow = (message) => {
+    console.log("MonetMain - handleNotificationShow");
+
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') { // 이미 노티 권한이 허용된 경우
+        showNotification(message);
+      } else if (Notification.permission !== 'denied') { // 노티 권한이 없는 경우 권한 요청
+        Notification.requestPermission().then(function (permission) {
+          if (permission === 'granted') {
+            showNotification(message);
+          }
+        });
+      }
+    }
+  }
+    
+  function showNotification(message) {
+    console.log("MonetMain - showNotification, message : ", message);
+
+    const notification = new Notification(message.title, {
+      body: message.message
+    });
+  
+    notification.onclick = function () { // 노티 클릭
+      console.log("MonetMain - showNotification, onclick");
+      monetChatTabMove(message);
+      // 노티 클릭하면 채팅방으로 갈 수 있도록 수정
+    };
+  }
+
+  function monetChatTabMove(message) { // monetChat 탭으로 이동
+    const existingTab = Array.from(window.top.frames).find((frame) => frame.location.href === 'localhost:8080/monetMain');
+  
+    // console.log("MonetChat Array Tab : ", Array.from(window.top.frames));
+
+    if (existingTab) {
+      existingTab.focus(); // 이미 열려 있는 탭으로 이동
+
+      setData({ state : { roomid: message.roomid, title: message.title, userData: userData}});
+    } else {
+      // // 탭이 열려 있지 않으면 새로운 탭을 열고 해당 URL로 이동
+      // window.open(url, '_blank');
+    }
   }
 
   const handleUserSearch = () => {
+    let searchUserid = '';
     console.log("MonetMain - handleUserSearch");
-
-    if(userid === undefined || userid === '' || userid.length === 0) {
+    
+    if(userid === undefined || userid === '') {
       console.log("MonetMain - handleUserSearch, userid empty");
-      return;
+      searchUserid = sessionStorage.getItem("userid");
+    } else { 
+      searchUserid = userid;
     }
 
     axios({
       url: "http://localhost:8080/monetchat/",
       method: "POST",
       data: {
-        userid: userid,
+        userid: searchUserid,
         searchType: 'user'
       }
     }).then(res => {
       console.log("MonetMain - handleUserSearch res.data : ", res.data.result);
       if(res.status === 200 && res.data.message === 'chatuser search success') {
         console.log("MonetMain - handleUserSearch res.data.result.length : ", res.data.result.length);
-        for(let i = 0; i < res.data.result.length; i++) { 
-          setUserData(prevRoomData => [...prevRoomData, { userid: res.data.result[i].userid, username: res.data.result[i].username }]);
-        }
+
+        const userListData = res.data.result.map(item => ({
+          userid: item.userid,
+          username: item.username,
+          status: item.status
+        }));
+
+        setUserData(userListData);
       } else {
           alert("사용자 데이터를 불러오지 못하였습니다.");
       }
@@ -85,27 +231,37 @@ function MonetMain() {
   }
 
   const handleChatroomSearch = () => {
+    let searchUserid = '';
     console.log("MonetMain - handleChatroomSearch");
 
-    if(userid === undefined || userid === '' || userid.length === 0) {
+    if(userid === undefined || userid === '') {
       console.log("MonetMain - handleChatroomSearch, userid empty");
-      return;
+      searchUserid = sessionStorage.getItem("userid");
+    } else { 
+      searchUserid = userid;
     }
 
     axios({
       url: "http://localhost:8080/monetchat/",
       method: "POST",
       data: {
-        userid: userid,
+        userid: searchUserid,
         searchType: 'room'
       }
     }).then(res => {
       console.log("MonetMain - handleChatroomSearch res.data : ", res.data.result);
+      
       if(res.status === 200 && res.data.message === 'chatroom search success') {
         console.log("MonetMain - handleChatroomSearch res.data.result.length : ", res.data.result.length);
-        for(let i = 0; i < res.data.result.length; i++) { 
-          setRoomData(prevRoomData => [...prevRoomData, { roomid: res.data.result[i].roomid, title: res.data.result[i].title }]);
-        }
+
+        const roomListData = res.data.result.map(item => ({
+          roomid: item.roomid,
+          title: item.title,
+          count: item.userCount
+        }));
+
+        setRoomData(roomListData);
+
       } else {
           alert("채팅창 데이터를 불러오지 못하였습니다.");
       }
@@ -119,13 +275,8 @@ function MonetMain() {
     let touserid = '';
     let roomid = '';
 
-    console.log("MonetMain - handleEnter");
-
-    // // 연결된 채팅방 없을 때 채팅버튼을 눌렀을 경우
-    // if(data === undefined || data === '' || data.length === 0) {
-    //   console.log("MonetMain - handleEnter, socket already close");
-    // } 
-  
+    console.log("MonetMain - handleEnter, userid : " + userid + ", username : " + username + ", usertype : " + usertype);
+    
     if(type === 'user') {
       touserid = param;
     } else if(type === 'room') {
@@ -136,7 +287,7 @@ function MonetMain() {
       url: "http://localhost:8080/monetchat/enter/",
       method: "POST",
       data: {
-        userid: userid,
+        userid: sessionStorage.getItem("userid"),
         touserid: touserid, // 사용자 클릭
         roomid: roomid, // 채팅방 클릭
       }
@@ -144,15 +295,33 @@ function MonetMain() {
     .then(async (res) => {
       console.log("MonetMain - handleEnter res.data : ", res.data);
 
-        if(res.status === 200 && res.data.message === 'chatroom enter success') {      
-          // setRoomData(prevRoomData => [...prevRoomData, { roomid: res.data.roomid, title: res.data.title }]);
+        if(res.status === 200 && res.data.message.endsWith('chatroom enter success')) {
+          // setLastSelectedRoomid(roomid);
+          
+          // 신규 채팅방일 경우 기존 roomdata에 추가로 넣음
+          // 기존 채팅방일 경우 이미 roomdata에 들어있기 때문에 추가안함
+          if(res.data.message === 'new chatroom enter success') {
+            setRoomData(prevRoomData => [...prevRoomData, { roomid: res.data.roomid, title: res.data.title, count:res.data.userCount }]);
+          } 
+
+          // 현재 들어가 있는 채팅방 roomid와 사용자가 들어가려는 채팅방 roomid가 같을 때 return 시킴
+          if(data === undefined || data === '' || data.length === 0) {
+            console.log("MonetMain - handleEnter data empty");
+          } else {
+            if(res.data.roomid === data.state.roomid) {
+              console.log("MonetMain - handleEnter already current roomid open");
+              return; 
+            } 
+          }
+
+          setData({ state : { roomid: res.data.roomid, title: res.data.title, userData: userData}});
+          
           // console.log("handleEnter - res.status : setRoomData :", roomData);
           // navigate('/monetChat'); // '/monetRegister' 경로로 이동
-
+          
           // userData는 채팅방에 들어가서 초대하는 기능으로 인하여 추가함
           // data가 변경되면 monetChat useEffect가 실행됨
-          setData({ state : { roomid: res.data.roomid, title: res.data.title, userData: userData}});
-          // navigate('/monetChat', { state: { roomid: res.data.roomid, title: res.data.title, userData: userData} });
+           // navigate('/monetChat', { state: { roomid: res.data.roomid, title: res.data.title, userData: userData} });
         } else {
             alert("채팅창 들어가기에 실패하였습니다.");
         }
@@ -168,23 +337,36 @@ function MonetMain() {
       url: "http://localhost:8080/monetchat/exit/",
       method: "POST",
       data: {
-        userid: userid,
+        userid: sessionStorage.getItem("userid"),
         username:username,
-        roomid: deleteRoomid,
+        roomid: deleteRoomData.roomid,
       }
     })
     .then(async (res) => {
       console.log("MonetMain - handleExit res.data : ", res.data);
 
         if(res.status === 200 && res.data.message === 'chatroom exit success') {      
-          // 모달종료
-          handleCloseModal();
+          handleCloseModal(); // 모달종료
+
+          console.log("MonetMain - handleExit roomData length : ", roomData.length);
 
           // 나간 채팅방을 제외하고 RoomData를 다시 생성함
-          setRoomData(prevRoomData => prevRoomData.filter(roomData => roomData.roomid !== deleteRoomid));
-          console.log("MonetMain - handleExit setRoomData :", roomData);
-          // navigate('/monetChat'); // '/monetRegister' 경로로 이동
+          // 채팅방이 복수 개 있을 경우 여기탐
+          if(roomData.length > 1) {
+            setRoomData(prevRoomData => prevRoomData.filter(roomData => roomData.roomid !== deleteRoomData.roomid));
+          } else { // 채팅방이 없으니까 빈 값으로 넣음
+            setRoomData([]);
+          }
 
+          // 현재 들어가 있는 채팅방 roomid와 사용자가 들어가려는 채팅방 roomid가 같을 때 return 시킴
+          if(data === undefined || data === '' || data.length === 0) {
+            console.log("MonetMain - handleExit data already empty");
+          } else {
+            if(deleteRoomData.roomid === data.state.roomid) {
+              console.log("MonetMain - handleExit data : ", data.state);
+              setData('');
+            } 
+          }
         } else {
             alert("채팅방 나가기에 실패하였습니다.");
         }
@@ -196,104 +378,128 @@ function MonetMain() {
   const handleOpenModal = (roomid, title) => {
     console.log("MonetMain - handleOpenModal roomid : ", roomid + ", title : " + title);
 
+    const deleteRoomInfo = {
+      roomid:roomid,
+      title:title
+    }
+
+    setDeleteRoomData(deleteRoomInfo)
     setIsModalOpen(true);
-    setDeleteRoomid(roomid);
-    setDeleteRoomTitle(title);
-    
   };
 
   const handleCloseModal = () => {
     console.log("MonetMain - handleCloseModal");
 
     setIsModalOpen(false);
-    setDeleteRoomid('');
-    setDeleteRoomTitle('');
+    setDeleteRoomData([]);
   };
 
   // monetChat 컴포넌트가 전달한 메세지
-  // 채팅방 나가기 버튼 눌렀을 때 사용함
+  // 채팅방안의 채팅방 나가기 버튼 눌렀을 때 사용함
   const handleDataFromMonetChat = (message) => {
     console.log("MonetMain - handleDataFromMonetChat, message : ", message);
 
-    if(message === 'chatroom exit success') {
+    if(message !== '' && message === 'chatroom exit success') {
       setData('');
     }
   };
 
-  // monetChat 컴포넌트가 전달한 메세지
-  // 
-  const handleSocketChange = () => {
+  // monetModal 컴포넌트가 전달한 메세지
+  // 나가기 버튼 눌렀을 때 사용함
+  const handleDataFromMonetModal = (message) => {
+    console.log("MonetMain - handleDataFromMonetModal, message : ", message);
 
-  }
-
+    if(message !== '' && message === 'chatroom exit success') {
+      handleExit();
+    }
+  };
 
   return (
-    <div>
-      <h2>메인화면</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>사용자ID</th>
-            <th>사용자이름</th>
-          </tr>
-        </thead>
-        <tbody>
-          {userData.map((user) => (
-            <tr key={user.userid}>
-              <td>{user.username}</td>
-              <td>{user.title}</td>
-              <button type="button" onClick={() => handleEnter(user.userid, 'user')}>채팅</button>
-            </tr>
-          ))}
-        </tbody>
-        </table>
+    <div className="container">
+      <div className="wrap-container">
+      <span className="title register-title">MonetChat</span>
+        <div className="row clearfix">
+          <div className="col-lg-12">
+            <div className="card chat-app">
+              <div id="plist" className="people-list">
+                {/* <div className="input-group">
+                    <div className="input-group-prepend">
+                        <span className="input-group-text"><i className="fa fa-search"></i></span>
+                    </div>
+                    {/* <input type="text" className="form-control" placeholder="Search..."/> */}
+                {/* </div> */}
+                <ul className="list-unstyled chat-list mt-2 mb-0" id="user-list">
+                  {userData.map((user) => (
+                      <li className="clearfix" key={user.userid} onClick={() => handleEnter(user.userid, 'user')}>
+                        <div className="about">
+                            <div className="name">{user.username}</div>
+                            <div className="status">
+                              <i className="fa fa-circle">{user.status === 1 ? "online" : "offline"}</i>
+                            </div>
+                        </div>
+                      </li>
+                    ))}
+                </ul>
 
-        <table>
-        <thead>
-          <tr>
-            <th>채팅방ID</th>
-            <th>제목</th>
-          </tr>
-        </thead>
-        <tbody>
-          {roomData.map((room) => (
-            <tr key={room.roomid}>
-              <td>{room.roomid}</td>
-              <td>{room.title}</td>
-              <button type="button" onClick={() => handleEnter(room.roomid, 'room')}>채팅방 입장</button>
-              <button type="button"  onClick={() => handleOpenModal(room.roomid, room.title)}>채팅방 나가기</button>
-            </tr>
-          ))}
-        </tbody>
-        </table>
+                {/* {userData.map((user) => (   
+                  <div className="about">
+                    <div className="name" onClick={() => handleEnter(user.userid, 'user')}>{user.username}</div>
+                    <div className="status">
+                      <i className="fa fa-circle">{user.status === 1 ? "online" : "offline"}</i>
+                    </div>
+                  </div>      
+                ))} */}
+                <ul className="list-unstyled chat-list mt-2 mb-0" id="room-list">
+                  {roomData.map((room) => (
+                    <li className="clearfix" key={room.roomid} onClick={() => handleEnter(room.roomid, 'room')}>
+                      <div className="about">
+                        <div className="name">{room.title}</div>
+                        <div className="status">
+                          <i className="fa fa-circle">채팅방 인원 : {room.count}명</i>
+                          <button type="button" className={'btn btn-primary mx-3'} onClick={(e) => {e.stopPropagation(); handleOpenModal(room.roomid, room.title); }}>나가기</button>
+                          
+                          {/* onClick={() => handleOpenModal(room.roomid, room.title)}>나가기</button> */}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+  {/* 
+                {roomData.map((room) => (
+                  <div className="about">
+                    <div className="name" onClick={() => handleEnter(room.roomid, 'room')}>{room.title}</div>
+                    <div className="status">
+                      <i className="fa fa-circle">채팅방 인원 : {room.count}명</i>
+                      <button type="button" onClick={() => handleOpenModal(room.roomid, room.title)}>채팅방 나가기</button>
+                    </div>
+                  </div>
+                  ))} */}
+              </div>
+              
+              {isModalOpen && deleteRoomData ? <MonetModal data={deleteRoomData} callback={handleDataFromMonetModal} /> : ( 
+                null 
+              )}
+              {/* <Modal isOpen={isModalOpen} onRequestClose={handleCloseModal} contentLabel="채팅방 나가기">
+                <h2>채팅방 나가기</h2>
+                <p>{deleteRoomTitle}의 채팅방을 나가시겠습니까?</p>
+                <button type="button" onClick={handleExit}>확인</button>
+                <button type="button" onClick={handleCloseModal}>취소</button>
+              </Modal> */}
           
-        <Modal isOpen={isModalOpen} onRequestClose={handleCloseModal} contentLabel="채팅방 나가기">
-          <h2>채팅방 나가기</h2>
-          <p>{deleteRoomTitle}의 채팅방을 나가시겠습니까?</p>
-          <button type="button" onClick={handleExit}>확인</button>
-          <button type="button" onClick={handleCloseModal}>취소</button>
-        </Modal>
-        
-        {/* 채팅방 컴포넌트 - 채팅방 입장 눌렀을 때 chatStatus 값은 true가 됨*/}
-        {!chatStatus ? null : (
-          <MonetChat data={data} callback={handleDataFromMonetChat} />
-          // <MonetChat location={location} />
-        )}
-        {/* <button type="button" onClick={() => handleCreate(room.roomid)}>채팅방 입장</button> */}
-        {/* <button type="button" onClick={init}>초기화</button> */}
-        
-      {/* <form>  
-        <div>
-          <label>Message:</label>
-          <input type="text" value={message} onChange={(e) => setMessage(e.target.value)}/>
-          <button type="button" onClick={handleSendMessage}> 메세지 보내기</button>
-        </div>
+              {/* 채팅방 컴포넌트 - 채팅방 입장 눌렀을 때 chatStatus 값은 true가 됨 */}
+              {!chatStatus ? null : (
+                <MonetChat data={data} callback={handleDataFromMonetChat} />
+              )}
 
-        <button type="button" onClick={init}>초기화</button>
-      </form> */}
+              {/* <button type="button" onClick={() => handleCreate(room.roomid)}>채팅방 입장</button>
+              <button type="button" onClick={init}>초기화</button> */}
+          
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
-
 
 export default MonetMain; 

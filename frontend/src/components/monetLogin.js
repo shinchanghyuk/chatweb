@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+// 부트스트랩
+import 'bootstrap/dist/css/bootstrap.css';
+import '../monetChat.css'; 
 
 function MonetLogin() {
     const [userid, setUserid] = useState('');
@@ -12,12 +15,25 @@ function MonetLogin() {
 
     // 회원가입으로 이동 버튼 클릭
     const handleRegisterMove = () => {
+        console.log("MonetLogin - handleRegisterMove");
+        
         navigate('/monetRegister'); // '/monetRegister' 경로로 이동
     };
 
     // 로그인 버튼 클릭
     const handleLogin = () => {
-        console.log("hadleLogin, userid : ", userid + "password : ", password);
+        console.log("MonetLogin - hadleLogin, userid : ", userid + "password : ", password);
+
+        if (userid === undefined || userid === '' || userid.length === 0) {
+            alert('아이디를 입력해주세요.');
+            return;
+        }
+
+        if (password === undefined || password === '' || password.length === 0) {
+            alert('비밀번호를 입력해주세요.');
+            return;
+        }
+
         axios({
             url: "http://localhost:8080/signIn/",
             method: "POST",
@@ -43,22 +59,27 @@ function MonetLogin() {
     };
 
     return (
-        <div>
-            <h2>로그인</h2>
-            <form>
-                <div>
-                    <label>Userid:</label>
-                    <input type="text" value={userid} onChange={(e) => setUserid(e.target.value)}/>
-                </div>
-                <div>
-                    <label>Password:</label>
-                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}/>
-                </div>
+        <div className='login-container'>
+            <div className="login-form">
+                <span className="title login-title">MonetChat LOGIN</span>
+                <form>
+                    <div className='login-input-container'>
+                        <input className="input login-input" type="text" placeholder="USERID" value={userid} onChange={(e) => setUserid(e.target.value)}/>
+                    </div>
+                    <div className='login-input-container'>
+                        <input className="input login-input" type="password" placeholder="PASSWORD" value={password} onChange={(e) => setPassword(e.target.value)}/>
+                    </div>
 
-                <button type="button" onClick={handleRegisterMove}>회원가입으로 이동</button>
-                <button type="button" onClick={handleLogin}>로그인</button>
-            </form>
-      </div>  
+                    <div className='register-container'>
+                        <a className='register' onClick={handleRegisterMove}>REGISTER</a>
+                    </div>
+
+                    <div className='login-input-container'>
+                        <button className="button login-button" type="button" onClick={handleLogin}>LOGIN</button>
+                    </div>
+                </form>
+            </div>  
+      </div>
     );
 }
 

@@ -10,16 +10,23 @@ const monetchatDB = require('../utils/databases.js');
 
 
 // localhost:8080
-// monet 채팅서비스 웹 접속
-// 리엑트와 같이할 때는 필요없어보임
-// router.post('/', (req, res) => {
-//     console.log("rouers - root POST");
-//     console.log("rouers - root POST path : " + path.join(__dirname, 'frontend/build', 'index.html'));
-    
-//     res.status(200).sendFile(path.join(__dirname, 'frontend/build', 'index.html'));
-//     // res.status(200).sendFile(path.join(__dirname, 'public', 'index.html'));
-//     // res.status(200).json({ message: '데이터를 성공적으로 받았습니다.' });
-// });
+router.get('/', (req, res) => {
+    console.log("routers, START");
+
+    res.sendFile(path.resolve('frontend/build/index.html'));
+
+    // res.send("<h1>codingSalon</h1>")
+        // res.sendFile(path.join(__dirname, 'frontend/build', 'index.html'));
+
+    // res.status(200).sendFile(__dirname + '/frontend/build/index.html');
+    // res.sendFile(path.resolve('frontend/build/index.html'));
+    // res.status(200).sendFile(path.resolve('frontend/public/index.html'));
+});
+
+// localhost:8080
+router.get('/notification', (req, res) => {
+    console.log("routers, notification, req.body : ", req.body);
+});
 
 // localhost:8080/userCheck
 // 사용자 아이디 중복체크 API
@@ -174,6 +181,17 @@ router.post('/signIn', (req, res) => {
         }
     });
 });
+
+// // 나머지 URL에 대한 요청을 재로그인 라우터로 리다이렉트
+// router.get('/*', (req, res) => {
+//     console.log('routers - GET not existing URL');
+//     res.sendFile(path.resolve('frontend/build/index.html'));
+// });
+
+// router.post('/*', (req, res) => {
+//     console.log('routers - POST not existing URL');
+//     res.sendFile(path.resolve('frontend/build/index.html'));
+// });
 
 function getGenerateEmailCode() {
     // 6자리의 무작위 숫자 생성
