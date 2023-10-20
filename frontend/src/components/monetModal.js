@@ -4,6 +4,8 @@ import Modal from 'react-bootstrap/Modal';
 
 // 부트스트랩
 import 'bootstrap/dist/css/bootstrap.css';
+import '../monetChat.css';
+
 
 function MonetModal({ data, callback }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -56,40 +58,38 @@ function MonetModal({ data, callback }) {
           <Modal.Header>
               <Modal.Title>{title}</Modal.Title>
           </Modal.Header>
-          <Modal.Body>
-            <div className="modal-body">
-              {data && data.roomid !== undefined && data.roomid !== '' ? (
-              <div>
-                <div className="about">
-                  <div className="name">{data.title} 의 채팅방을 나가시겠습니까?</div>
-                </div>
-
-                <div className="modal-footer">
-                <button type="button" className="btn btn-primary" onClick={handleCloseModal}>닫기</button>
-                <button type="button" className="btn btn-primary" onClick={() => handleExit()}>나가기</button>
-                </div>
+          <div className="modal-body">
+            {data && data.roomid !== undefined && data.roomid !== '' ? (
+            <div>
+              <div className="mt-2">
+                <div>{data.title} 의 채팅방을 나가시겠습니까?</div>
               </div>
-              ) : null }
 
-              {data && Array.isArray(data) && data.length > 0 ? (
-                <div>
-                  {data.map((user) => (
-                    <div className="about" key={user.userid}>
-                      <div className="name">{user.username}</div>
-                      <div className="status">
-                        <i className="fa fa-circle">{user.status === 1 ? "online" : "offline"}</i>
-                        <button type="button" className="btn btn-primary ml-3" onClick={() => handleInvite(user.userid, user.username)}>초대</button>
-                      </div>
-                    </div>
-                  ))}
-                
-                  <div className="modal-footer">
-                    <button type="button" className="btn btn-primary" onClick={handleCloseModal}>닫기</button>
-                  </div>
-                </div>  
-              ) : null }
+              <div className="modal-custom-footer">
+              <button type="button" className="btn btn-primary mr-2" onClick={handleCloseModal}>닫기</button>
+              <button type="button" className="btn btn-primary" onClick={() => handleExit()}>나가기</button>
+              </div>
             </div>
-          </Modal.Body>
+            ) : null }
+
+            {data && Array.isArray(data) && data.length > 0 ? (
+              <div>
+                {data.map((user) => (
+                  <div className="mt-2 ml-1" key={user.userid}>
+                    <div>{user.username}</div>
+                    <div>
+                      <i className="fa fa-circle">{user.status === 1 ? "online" : "offline"}</i>
+                      <button type="button" className="btn btn-primary ml-3" onClick={() => handleInvite(user.userid, user.username)}>초대</button>
+                    </div>
+                  </div>
+                ))}
+              
+                <div className="modal-custom-footer">
+                  <button type="button" className="btn btn-primary" onClick={handleCloseModal}>닫기</button>
+                </div>
+              </div>  
+            ) : null }
+          </div>
       </Modal>
     </div>
   );

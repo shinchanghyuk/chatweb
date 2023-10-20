@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 import MonetChat from './monetChat';
@@ -30,9 +30,11 @@ function MonetMain() {
   const [chatStatus, setChatStatus] = useState(false);
   const [data, setData] = useState('');
 
+  let webSocket;
+
   // useNavigate을 사용하여 navigate 객체를 가져옴
   // 만약 monetMain와 monetChat 컴포넌트를 따로 쓸거면 이를 통해서 데이터 전달을 해야함
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
 
   useEffect(() => {
     console.log("MonetMain - userid useEffect");
@@ -64,32 +66,42 @@ function MonetMain() {
     console.log("MonetMain - init, userid : " + userid + ", username : " + username + ", usertype : " + usertype);
 
     // userid
-    if(userid !== undefined && userid !== '') {
+    if(userid !== undefined && userid !== '' && userid !== null) {
       notificationPermission();
 
-      if (socket) {
-        console.log('monetChat - useEffect, already socket, close');
-        socket.close();
+      // if (socket) {
+      //   console.log('MonetMain - useEffect, already socket, close');
+      //   socket.close();
+      //   setSocket(null);
+      // }
+
+      if(webSocket) {
+        console.log('MonetMain - useEffect, already webSocket, close');
+        webSocket.close();
         setSocket(null);
       }
 
       userWebSocket();
+    } else if(sessionStorage.getItem("userid") === undefined || sessionStorage.getItem("userid") === null || sessionStorage.getItem("userid") === '') {
+      console.log('MonetMain - useEffect, userid is null');
+      alert('유효하지 않는 접근입니다.');
+      navigate('/');
     }
   }
 
   const userWebSocket = () => {
       // WebSocket 연결 생성
-      const websocket = WebSocket.createWebSocket(sessionStorage.getItem("userid"), '');
+      webSocket = WebSocket.createWebSocket(sessionStorage.getItem("userid"), '');
 
       // 웹 소켓 연결이 열렸을 때 호출되는 이벤트 핸들러
-      websocket.onopen = () => {
+      webSocket.onopen = () => {
         console.log('사용자 웹 소켓 연결이 열렸습니다.');
-        setSocket(websocket);
+        setSocket(webSocket);
       };
   
       // 웹 소켓 메시지를 수신했을 때 호출되는 이벤트 핸들러
       // 초대 되었거나, 방에 있지 않을 때 메세지가 도착하면 알림
-      websocket.onmessage = (event) => {
+      webSocket.onmessage = (event) => {
         const message = event.data;
         handleReceiveMessage(message);
       };
@@ -144,6 +156,16 @@ function MonetMain() {
           return user;
         });
       });
+    } else if(receivedMessage.message === '중복 로그인 되었습니다.') {
+      if (webSocket) {
+        console.log('MonetMain - handleReceiveMessage new user Login, webSocket close');
+        webSocket.close();
+        setSocket(null);
+      } else { 
+        console.log('MonetMain - handleReceiveMessage new user Login, socket is null');
+      }
+    
+      navigate('/');
     }
   };
 
@@ -397,10 +419,25 @@ function MonetMain() {
   // monetChat 컴포넌트가 전달한 메세지
   // 채팅방안의 채팅방 나가기 버튼 눌렀을 때 사용함
   const handleDataFromMonetChat = (message) => {
-    console.log("MonetMain - handleDataFromMonetChat, message : ", message);
+    const receivedMessage = JSON.parse(message);
 
-    if(message !== '' && message === 'chatroom exit success') {
-      setData('');
+    console.log("MonetMain - handleDataFromMonetChat, receivedMessage : ", receivedMessage);
+
+    if(receivedMessage !== undefined && receivedMessage !== null && receivedMessage !== '') {
+      if(receivedMessage.message === "chatroom exit success") {
+        setData('');
+      } else if(receivedMessage.message === "chatroom title Modify success") {
+        // roomData의 title 변경
+
+        const updatedRoomData = roomData.map(room => {
+          if (room.roomid === receivedMessage.roomid) {
+            return { ...room, title: receivedMessage.title };
+          }
+          return room;
+        });
+
+        setRoomData(updatedRoomData);
+      }
     }
   };
 
@@ -414,20 +451,37 @@ function MonetMain() {
     }
   };
 
+  const handleLogout = () => {
+    console.log("MonetMain - handleLogout");
+
+    if(window.confirm("로그아웃 하시겠습니까?")) {
+      sessionStorage.setItem("userid", '');
+      sessionStorage.setItem("username", '');
+      sessionStorage.setItem("usertype ", '');
+
+      // 로그아웃 시 해당 사용자 웹 소켓 종료
+      // setData('')를 통해서 채팅방 웹 소켓도 종료
+      if (webSocket) {
+        console.log('MonetMain - handleLogout, webSocket close');
+        webSocket.close();
+        setSocket(null);
+      }
+      
+      navigate('/'); // 로그인 페이지로 이동
+    }
+  };
+
   return (
-    <div className="container">
-      <div className="wrap-container">
-      <span className="title register-title">MonetChat</span>
+    <div className="container main-container">
+      <div>
+        <div className="main-nav">
+          <span className="main-title">MonetChat</span>
+          <button type="button" className={'btn btn-primary mb-2'} onClick={handleLogout}>로그아웃</button>
+        </div>
         <div className="row clearfix">
           <div className="col-lg-12">
             <div className="card chat-app">
               <div id="plist" className="people-list">
-                {/* <div className="input-group">
-                    <div className="input-group-prepend">
-                        <span className="input-group-text"><i className="fa fa-search"></i></span>
-                    </div>
-                    {/* <input type="text" className="form-control" placeholder="Search..."/> */}
-                {/* </div> */}
                 <ul className="list-unstyled chat-list mt-2 mb-0" id="user-list">
                   {userData.map((user) => (
                       <li className="clearfix" key={user.userid} onClick={() => handleEnter(user.userid, 'user')}>
@@ -441,14 +495,6 @@ function MonetMain() {
                     ))}
                 </ul>
 
-                {/* {userData.map((user) => (   
-                  <div className="about">
-                    <div className="name" onClick={() => handleEnter(user.userid, 'user')}>{user.username}</div>
-                    <div className="status">
-                      <i className="fa fa-circle">{user.status === 1 ? "online" : "offline"}</i>
-                    </div>
-                  </div>      
-                ))} */}
                 <ul className="list-unstyled chat-list mt-2 mb-0" id="room-list">
                   {roomData.map((room) => (
                     <li className="clearfix" key={room.roomid} onClick={() => handleEnter(room.roomid, 'room')}>
@@ -464,36 +510,17 @@ function MonetMain() {
                     </li>
                   ))}
                 </ul>
-  {/* 
-                {roomData.map((room) => (
-                  <div className="about">
-                    <div className="name" onClick={() => handleEnter(room.roomid, 'room')}>{room.title}</div>
-                    <div className="status">
-                      <i className="fa fa-circle">채팅방 인원 : {room.count}명</i>
-                      <button type="button" onClick={() => handleOpenModal(room.roomid, room.title)}>채팅방 나가기</button>
-                    </div>
-                  </div>
-                  ))} */}
               </div>
               
               {isModalOpen && deleteRoomData ? <MonetModal data={deleteRoomData} callback={handleDataFromMonetModal} /> : ( 
                 null 
               )}
-              {/* <Modal isOpen={isModalOpen} onRequestClose={handleCloseModal} contentLabel="채팅방 나가기">
-                <h2>채팅방 나가기</h2>
-                <p>{deleteRoomTitle}의 채팅방을 나가시겠습니까?</p>
-                <button type="button" onClick={handleExit}>확인</button>
-                <button type="button" onClick={handleCloseModal}>취소</button>
-              </Modal> */}
           
               {/* 채팅방 컴포넌트 - 채팅방 입장 눌렀을 때 chatStatus 값은 true가 됨 */}
               {!chatStatus ? null : (
                 <MonetChat data={data} callback={handleDataFromMonetChat} />
               )}
 
-              {/* <button type="button" onClick={() => handleCreate(room.roomid)}>채팅방 입장</button>
-              <button type="button" onClick={init}>초기화</button> */}
-          
             </div>
           </div>
         </div>
@@ -503,3 +530,16 @@ function MonetMain() {
 };
 
 export default MonetMain; 
+
+
+// 할일
+// 비밀번호 잊었을 때 관련 페이지 생성(이메일로 인증하도록)
+
+
+// 토요일
+// 후 포트폴리오 작성
+// 후 AWS 서버 생성
+
+
+// 사용자가 마지막에 채팅 메세지 띄우기?
+// 없는 URL로 왔을 때 유효하지 않은 페이지? 메세지 후 로그인 화면 이동

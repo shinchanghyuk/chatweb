@@ -39,12 +39,10 @@ wss.on('connection', (ws, req) => {
     if(roomid === undefined || roomid === '' || roomid.length === 0 ) { // 사용자 웹 소켓일 경우 
         if(!clientsUser.has(userid)) {
             clientsUser.set(userid, []);
-            clientsUser.get(userid).push(userInfo); 
-
             // 웹 소켓에 있는 사용자에게 자신이 online 인것을 알려줘야 하므로 사용자 웹 소켓으로 메세지 전송
             const userids = Array.from(clientsUser.keys());
 
-            console.log('webSocketServer - connection userids : ' + userids + 'length : ' + userids.length);
+            console.log('webSocketServer - connection userids : ' + userids + ', length : ' + userids.length);
             let message = userid + "님이 로그인 하였습니다.";
             for(let i = 0; i < userids.length; i++) {        
                 if(clientsUser.has(userids[i])) {
@@ -57,10 +55,21 @@ wss.on('connection', (ws, req) => {
                     console.log('webSocketServer - connection has not clientsUser');
                 }
             }
+        } else { 
+            console.log('webSocketServer - connection already has clientsUser userid : ', userid);
         }
-    } else { // 이미 클라이언트 정보가 저장되어있을 때
+
+        clientsUser.get(userid).push(userInfo); 
+    } else { 
         if(!clientsRoom.has(roomid)) { 
             clientsRoom.set(roomid, []);
+        } else { // 이미 클라이언트 정보가 저장되어있을 때
+
+            // for (const client of clientsRoom.get(roomid)) { // 기존 웹 소켓을 끊음
+            //     if(client.userid === userid) { 
+            //         client.ws.send(JSON.stringify({message: '새로 로그인 되어 기존 웹소켓은 끊어집니다.'}));
+            //     }
+            // }
         }
         
         clientsRoom.get(roomid).push(roomInfo);
@@ -383,6 +392,7 @@ function exitMessageSend(roomid, userid, username, accountCount) {
     }
 }
 
+// 사용자의 상태를 검색
 function userConnectionSearch(userList) {
     console.log('webSocketServer - userConnectionSearch, userList : ', userList);
 
@@ -400,6 +410,27 @@ function userConnectionSearch(userList) {
         resolve(updatedUserList);
     });
 }
+
+// 사용자의 유무 확인(중복 로그인)
+function userWebsocketSearch(userid) {
+    console.log('webSocketServer - userWebsocketSearch, userid : ', userid);
+    let response = false;
+    return new Promise((resolve, reject) => {
+        if (clientsUser.has(userid)) {
+            response = true;
+            if (clientsUser.get(userid)[0].ws !== null && clientsUser.get(userid)[0].ws.readyState === 1) {
+                clientsUser.get(userid)[0].ws.send(JSON.stringify({ userid:userid, message: '중복 로그인 되었습니다.'}));
+            }
+        } else {
+            response = false;        
+        }
+
+        console.log('webSocketServer - userWebsocketSearch, clientsUser : ', response);
+
+        resolve(response);
+    });
+}
+
 
 // 채팅방에서 다른 사용자 초대했을 때 동작
 function inviteMessageSend(roomid, title, userid, username) { 
@@ -468,5 +499,6 @@ function inviteMessageSend(roomid, title, userid, username) {
 module.exports = {
     inviteMessageSend,
     exitMessageSend,
-    userConnectionSearch
+    userConnectionSearch,
+    userWebsocketSearch
 };
