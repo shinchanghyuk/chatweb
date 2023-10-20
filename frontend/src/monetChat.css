@@ -1,3 +1,219 @@
+/* 공통 */
+.input {
+    color: #403866;
+    line-height: 1.2;
+    font-size: 18px;
+    display: block;
+    font-weight: bold;
+    background: 0 0;
+    border-radius: 5px;
+    border: none;
+}
+
+.button { 
+    font-weight: bold;
+    color: #fff;
+    line-height: 1.2;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 20px;
+    background-color: #827ffe;
+    border-radius: 3px;
+    -webkit-transition: all .4s;
+    -o-transition: all .4s;
+    -moz-transition: all .4s;
+    transition: all .4s;
+    border:none;
+}
+
+.container {
+    width: 100%;
+    flex-wrap: wrap;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+
+.title {
+    font-weight: bold;
+    font-size: 30px;
+    color: #403866;
+    line-height: 1.2;
+    text-transform: uppercase; 
+    width: 100%;
+    display: block;
+    padding-bottom: 30px;
+    text-align: center;
+}
+
+/* 로그인  */
+.login-title {
+    padding-bottom: 51px;
+    text-align: center;
+}
+
+.login-input {
+    height: 62px;
+    padding: 0 20px 0 38px;
+    width: 100%;
+}
+
+.login-form { 
+    width: 390px;
+    background: #fff;
+    border-radius: 10px;
+    position: relative;
+}
+
+.login-button {
+    width: 100%;
+    font-size: 16px;
+    height: 62px;
+}
+
+.login-container {
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    padding: 15px;
+    min-height: 100vh;
+}
+
+.login-input-container {
+    width: 100%;
+    position: relative;
+    background-color: #e6e6e6;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    margin-bottom: 16px;
+}
+
+.login-a-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+
+/* 회원가입  */
+.register {
+    align-items: center;
+    text-decoration: none;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+}
+
+.register-form { 
+    width: 500px;
+    background: #fff;
+    border-radius: 10px;
+    position: relative;
+}
+
+.common-input { 
+    padding: 0 5px 0 20px;
+    display: flex;
+    height: 50px;
+    background-color: #e6e6e6;
+    margin-right: 0.5em;   
+}
+
+.register-input {
+    width: 100%;
+}
+
+.forget-input {
+    width: 50%;
+    font-size: 14px;
+}
+
+.select {
+    margin-left: 0.5em;
+    margin-right: 0em;
+}
+
+.register-input-container {
+    width: 100%;
+    position: relative;
+    background-color: #e6e6e6;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    margin-bottom: 16px;
+    display:flex;
+    align-items: center;
+}
+
+.register-button {
+    width: 23.5%;
+    font-size: 14px;
+    height: 50px;
+    float: right;
+}
+
+.register-email-button {
+    width: 24%;
+}
+
+/* 아이디/비밀번호 찾기화면 */
+.forget-top-container {
+    width: 100%;
+    position: relative;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    margin-bottom: 16px;
+    display:flex;
+    align-items: center;
+    padding: 15px 15px 0px 15px;
+}
+
+.forget-top-button {    
+    font-size: 14px;
+    height: 50px;
+}
+
+.forget-input-container {
+    padding: 10px 20px 10px 20px;
+}
+
+.forget-bottom-button {    
+    font-size: 14px;
+    height: 50px;
+    width: 100%;
+}
+
+.forget-span { 
+    font-weight: bold;
+    line-height: 1.2;
+    justify-content: center;
+    align-items: center;
+}
+
+.white {
+    background-color: #ffffff;
+}
+
+
+/* 메인화면 */
+.main-container { 
+    padding: 15px;
+}
+
+.main-title {
+    font-weight: bold;
+    font-size: 30px;
+    color: #403866;
+    line-height: 1.2;
+    text-transform: uppercase; 
+    /* padding-bottom: 30px;     */
+}
+
+.main-nav {
+    padding: 20px 0 0 0;
+    display: flex;
+    justify-content: space-between;
+}
+
 .chat-app .people-list {
     width: 280px;
     position: absolute;
@@ -8,7 +224,6 @@
 
 .chat-app .chat {
     margin-left: 280px;
-    border-left: 1px solid #eaeaea
 }
 
 .people-list {
@@ -20,7 +235,6 @@
     overflow-x: hidden;
     height: 500px;
     border: 1px solid rgba(0,0,0,.125);
-    
 }
 
 .people-list .chat-list li {
@@ -62,8 +276,9 @@
     font-size: 13px
 }
 
+/* 채팅화면 */
 .chat .chat-header {
-    padding: 15px 20px;
+    padding: 20px 0 0 0;
     border-bottom: 2px solid #f4f7f6
 }
 
@@ -73,9 +288,21 @@
     width: 40px
 }
 
-.chat .chat-header .chat-about {
+.chat .chat-header {
     float: left;
-    padding-left: 10px
+    width:100%
+}
+
+.chat-about {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-left: 20px
+}
+
+.chat-row {
+    margin-left: -15px;
+    margin-right: -15px;
 }
 
 .chat .chat-history {
@@ -106,7 +333,6 @@
 .me {
     color: #1d8ecd
 }
-
 
 .centered-message {
     text-align: center; 
@@ -152,12 +378,16 @@
 
 @media only screen and (min-width: 768px) and (max-width: 992px) {
     .chat-app .chat-list {
-        height: 650px;
+        /* height: 650px; */
         overflow-x: auto
     }
     .chat-app .chat-history {
-        height: 600px;
+        /* height: 600px; */
         overflow-x: auto
+    }
+
+    .chat-button {
+        display: none;
     }
 }
 
@@ -217,156 +447,54 @@
 
 .chat-button {
     float: right !important;
-    margin-right: 30px;
-    margin-top: 5px;
-  }
+}
 
 .chat-message { 
-    white-space: pre-line
+    white-space: pre-lin
 }
 
-.input {
-    color: #403866;
-    line-height: 1.2;
-    font-size: 18px;
-    display: block;
-    font-weight: bold;
-    background: 0 0;
-    border-radius: 5px;
-    border: none;
-}
-
-.login-input {
-    height: 62px;
-    padding: 0 20px 0 38px;
-    width: 100%;
-}
-
-.register-input {
-    padding: 0 5px 0 20px;
+.chat-input { 
     display: flex;
-    height: 50px;
-    width: 100%;
 }
 
-.register-email-input {
-    padding: 0 5px 0 20px;
+.chat-input-button { 
+    height: 50%;
+    width: 70px;
+}
+
+.card { 
+    word-wrap: break-word;
+    background-clip: initial;
+    background-color: #fff;
     display: flex;
-    height: 50px;
-    width: 60%;
+    flex-direction: column;
+    height: 500px;
+    min-width: 0;
+    position: relative;
+    border: 1px solid rgba(0,0,0,.125);
 }
 
-.register-select {
-    /* padding: 0 20px 0 20px; */
+/* 모달 */
+.modal-custom-footer {
+    display: -ms-flexbox;
     display: flex;
-    height: 50px;
-    width: 40%;
-}
-
-.button { 
-    font-weight: bold;
-    color: #fff;
-    line-height: 1.2;
-    text-transform: uppercase;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0 20px;
-
-    background-color: #827ffe;
-    border-radius: 3px;
-    -webkit-transition: all .4s;
-    -o-transition: all .4s;
-    -moz-transition: all .4s;
-    transition: all .4s;
-    border:none;
-}
-
-.login-button {
-    width: 100%;
-    font-size: 16px;
-    height: 62px;
-}
-
-.register-button {
-    width: 15%;
-    font-size: 14px;
-    height: 50px;
-}
-
-.login-container {
-    width: 100%;
-    min-height: 100vh;
-    display: flex;
+    -ms-flex-wrap: wrap;
     flex-wrap: wrap;
-    justify-content: center;
+    -ms-flex-align: center;
     align-items: center;
-    padding: 15px;
-    background-position: center;
-    background-size: cover;
-    background-repeat: no-repeat;
+    -ms-flex-pack: end;
+    justify-content: flex-end;
+    padding: 0.75rem;
+    border-bottom-right-radius: calc(0.3rem - 1px);
+    border-bottom-left-radius: calc(0.3rem - 1px);
 }
 
-.login-input-container {
-    width: 100%;
-    position: relative;
-    background-color: #e6e6e6;
-    border: 1px solid transparent;
-    border-radius: 5px;
-    margin-bottom: 16px;
+.register-button:disabled {
+    background-color: gray;
+    /* 다른 스타일 속성도 추가 가능 */
 }
 
-/* // 회원가입부분 부터 내일시작 */
-.register-input-container {
-    width: 100%;
-    position: relative;
-    background-color: #e6e6e6;
-    border: 1px solid transparent;
-    border-radius: 5px;
-    margin-bottom: 16px;
-    display:flex;
-    align-items: center;
-}
-
-.login-form { 
-    width: 390px;
-    background: #fff;
-    border-radius: 10px;
-    position: relative;
-}
-
-.register-form { 
-    width: 500px;
-    background: #fff;
-    border-radius: 10px;
-    position: relative;
-}
-
-.title {
-    font-weight: bold;
-    font-size: 30px;
-    color: #403866;
-    line-height: 1.2;
-    text-transform: uppercase;
-    text-align: center;
-    width: 100%;
-    display: block;
-}
-
-.login-title {
-    padding-bottom: 51px;
-}
-
-.register-title {
-    padding-bottom: 30px;
-}
-
-.register {
-    display: flex;
-    justify-content: right;
-    -ms-align-items: center;
-    align-items: center;
-    text-decoration: none;
-    font-weight: bold;
-    margin-bottom: 0.5em;
+.forget-top-button:disabled {
+    background-color: gray;
+    /* 다른 스타일 속성도 추가 가능 */
 }

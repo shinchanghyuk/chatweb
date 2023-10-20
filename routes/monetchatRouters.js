@@ -130,7 +130,8 @@ router.post('/enter', (req, res) => {
                                 monetchatDB.executeQuery(queries[i], values[i], function(err, rows) {
                                     if(!err) {
                                         if(i+1 == queries.length) {
-                                            res.status(200).json({ roomid: roomid, title: title, message: 'new chatroom enter success' });
+                                            // count가 2인 이유는 사용자를 클릭하였기 때문에 1대1 총 2명이기 때문
+                                            res.status(200).json({ roomid: roomid, title: title, count: 2, message: 'new chatroom enter success' });
                                         }
                                     } else { 
                                         console.log('routers - enter executeQuery Exception  : ', err);
@@ -234,7 +235,7 @@ router.post('/exit', (req, res) => {
     });
 });
 
-// localhost:8080/invite
+// localhost:8080/monetchat/invite
 // monet 채팅서비스 채팅방 들어갔을 때 API
 router.post('/invite', (req, res) => {  
     console.log('monetchatRouters - invite, req.body : ', req.body);
@@ -295,17 +296,46 @@ router.post('/invite', (req, res) => {
     });
 });
 
+// localhost:8080/monetchat/titleModify
+// monet 채팅서비스 채팅방 이름 변경 API
+router.post('/titleModify', (req, res) => {  
+    console.log('monetchatRouters - titleModify, req.body : ', req.body);
 
-// // // 나머지 URL에 대한 요청을 재로그인 라우터로 리다이렉트
-// router.get('/*', (req, res) => {
-//     console.log('routers - GET not existing URL');
-//     res.sendFile(path.resolve('frontend/build/index.html'));
-// });
+    // 채팅방에 있는 사용자인지 체크, 기존 사용자일 경우 이미 있다고 응답
+    const query = 'UPDATE t_chatroom SET title=?, modifytime=? WHERE roomid=? AND status=1';
+    const values = [req.body.title, dateFormat(), req.body.roomid];
 
-// router.post('/*', (req, res) => {
-//     console.log('routers - POST not existing URL');
-//     res.sendFile(path.resolve('frontend/build/index.html'));
-// });
+    monetchatDB.executeQuery(query, values, function(err, rows) {
+        if(!err) {
+            console.log('monetchatRouters - titleModify executeQuery');
+            res.status(200).json({ roomid: req.body.roomid, title: req.body.title, message: 'chatroom title Modify success' });
+        } else {
+            console.log('monetchatRouters - titleModify executeQuery Exception : ', err);
+        }
+    });
+});
+
+
+// router.get('/*', function(req, res) {
+//     console.log('monetchatRouters - GET not existing URL1');
+//     res.sendFile(path.resolve('frontend/build/index.html'), function(err) {
+//         if (err) {
+//             console.log('monetchatRouters - GET not existing Exception : ', err);
+//             res.status(500).send(err)
+//         }
+//     })
+// })
+
+// router.post('/*', function(req, res) {
+//     console.log('monetchatRouters - POST not existing URL');
+//     res.sendFile(path.resolve('frontend/build/index.html'), function(err) {
+//       if (err) {
+//         console.log('monetchatRouters - POST not existing Exception : ', err);
+//         res.status(500).send(err)
+//       }
+//     })
+// })
+
 
 // 현재시간 yyyymmddhhmmss 형식으로 변경해주는 함수
 function dateFormat() {

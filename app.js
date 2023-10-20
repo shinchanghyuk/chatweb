@@ -5,22 +5,19 @@ const app = express();
 
 // 라우터 파일
 const router = require('./routes/routers.js');
-const chatRouter = require('./routes/monetchatRouters.js');
+const monetRouter = require('./routes/monetRouters.js');
+const monetChatRouter = require('./routes/monetchatRouters.js');
 
 // JSON 통신 및 form-urlencoded 통신을 받는다는 설정
 app.use(express.json()); 
 app.use(express.urlencoded( {extended : false } ));
 
 app.use("/", router);
-app.use("/monetchat/", chatRouter);
+app.use("/monet", monetRouter);
+app.use("/monetchat", monetChatRouter);
 
-const cors = require('cors');
-app.use(cors());
-
-
-// Websocket 설정파일
-const http = require('http');
-const createWebSocketServer = require('./utils/webSocketServer.js');
+// const cors = require('cors');
+// app.use(cors());
 
 // 노드 PORT
 const port = 8080;
@@ -34,7 +31,7 @@ monetchatDB.connect();
 // public - 노드만 사용할 때
 app.use(express.static(path.join(__dirname, 'frontend/build')));
 // app.use(express.static(path.join(__dirname, 'public')));
-
+  
 app.listen(port, () => {
     console.log(`서버가 포트 ${port}에서 실행 중입니다.`);
 });
