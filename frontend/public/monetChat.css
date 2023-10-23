@@ -234,7 +234,8 @@
     overflow-y: scroll;
     overflow-x: hidden;
     height: 500px;
-    border: 1px solid rgba(0,0,0,.125);
+    border-right: 1px solid rgba(0,0,0,.125);
+    /* border: 1px solid rgba(0,0,0,.125); */
 }
 
 .people-list .chat-list li {
@@ -277,10 +278,9 @@
 }
 
 /* 채팅화면 */
-.chat .chat-header {
-    padding: 20px 0 0 0;
+/* .chat .chat-header {
     border-bottom: 2px solid #f4f7f6
-}
+} */
 
 .chat .chat-header img {
     float: left;
@@ -303,6 +303,7 @@
 .chat-row {
     margin-left: -15px;
     margin-right: -15px;
+    padding-top: 15px;
 }
 
 .chat .chat-history {
@@ -450,7 +451,7 @@
 }
 
 .chat-message { 
-    white-space: pre-lin
+    white-space: pre-line;
 }
 
 .chat-input { 

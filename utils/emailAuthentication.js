@@ -29,13 +29,12 @@ const sendAuthenticationEmail = async (email, code) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('이메일이 전송되었습니다:', info.response);
+    console.log('emailAuthentcation - email send result : ', info.response);
 
     result = true;
 
   } catch (error) {
-    console.error('이메일 전송 오류:', error);
-
+    console.error('emailAuthentcation - email send Exception : ', error);
     result = false;
   }
 

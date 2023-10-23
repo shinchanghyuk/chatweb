@@ -124,17 +124,20 @@ function MonetMain() {
 
     console.log("MonetMain - handleReceiveMessage, message : ", receivedMessage);
 
+    // 사용자 웹 소켓에 로그인 되어있을 때 다른 채팅방에서 초대되었을 경우 RoomData를 초기화 해줌
     if(receivedMessage.message.endsWith("에 초대되었습니다.")) {
-      if(roomData.length > 0) { // 기존 열려있는 채팅방이 있을경우
-        setRoomData(prevRoomData => [...prevRoomData, { roomid: receivedMessage.roomid, title: receivedMessage.title, count: receivedMessage.userCount}]);
+      if(roomData !== undefined && roomData !== '' && roomData.length > 0) { // 기존 열려있는 채팅방이 있을경우
+
+        setRoomData(prevRoomData => [...prevRoomData, { roomid: receivedMessage.roomid, title: receivedMessage.title, count: receivedMessage.count}]);
+      
       } else { // 없을경우
         const roomData = {
           roomid: receivedMessage.roomid,
           title: receivedMessage.title,
-          count: receivedMessage.userCount
+          count: receivedMessage.count
         }
 
-        setRoomData(roomData);
+        setRoomData([roomData]);
       }
     } else if(receivedMessage.message === "새로운 메세지가 도착하였습니다.") {
       // 노티를 사용하여 사용자에게 알림 줄 예정
@@ -166,6 +169,28 @@ function MonetMain() {
       }
     
       navigate('/');
+    } else if(receivedMessage.message === "채팅방 이름이 변경되었습니다.") {
+
+      setRoomData(prevRoomData => {
+        return prevRoomData.map(room => {
+          if (room.roomid === receivedMessage.roomid) {
+            return { ...room, title: receivedMessage.title };
+          }
+          
+          return room;
+        });
+      });
+    } else if(receivedMessage.message.endsWith("님이 채팅방을 퇴장하였습니다.")) {
+
+      setRoomData(prevRoomData => {
+        return prevRoomData.map(room => {
+          if (room.roomid === receivedMessage.roomid) {
+            return { ...room, count: receivedMessage.count};
+          }
+          
+          return room;
+        });
+      });
     }
   };
 
@@ -279,7 +304,7 @@ function MonetMain() {
         const roomListData = res.data.result.map(item => ({
           roomid: item.roomid,
           title: item.title,
-          count: item.userCount
+          count: item.count
         }));
 
         setRoomData(roomListData);
@@ -323,7 +348,7 @@ function MonetMain() {
           // 신규 채팅방일 경우 기존 roomdata에 추가로 넣음
           // 기존 채팅방일 경우 이미 roomdata에 들어있기 때문에 추가안함
           if(res.data.message === 'new chatroom enter success') {
-            setRoomData(prevRoomData => [...prevRoomData, { roomid: res.data.roomid, title: res.data.title, count:res.data.userCount }]);
+            setRoomData(prevRoomData => [...prevRoomData, { roomid: res.data.roomid, title: res.data.title, count:res.data.count }]);
           } 
 
           // 현재 들어가 있는 채팅방 roomid와 사용자가 들어가려는 채팅방 roomid가 같을 때 return 시킴
@@ -337,13 +362,6 @@ function MonetMain() {
           }
 
           setData({ state : { roomid: res.data.roomid, title: res.data.title, userData: userData}});
-          
-          // console.log("handleEnter - res.status : setRoomData :", roomData);
-          // navigate('/monetChat'); // '/monetRegister' 경로로 이동
-          
-          // userData는 채팅방에 들어가서 초대하는 기능으로 인하여 추가함
-          // data가 변경되면 monetChat useEffect가 실행됨
-           // navigate('/monetChat', { state: { roomid: res.data.roomid, title: res.data.title, userData: userData} });
         } else {
             alert("채팅창 들어가기에 실패하였습니다.");
         }
@@ -429,14 +447,28 @@ function MonetMain() {
       } else if(receivedMessage.message === "chatroom title Modify success") {
         // roomData의 title 변경
 
-        const updatedRoomData = roomData.map(room => {
-          if (room.roomid === receivedMessage.roomid) {
-            return { ...room, title: receivedMessage.title };
-          }
-          return room;
+        setRoomData(prevRoomData => {
+          return prevRoomData.map(room => {
+            if (room.roomid === receivedMessage.roomid) {
+              return { ...room, title: receivedMessage.title };
+            }
+            
+            return room;
+          });
         });
+        
+        // 초대, 퇴장 당사자가 아닌 그 채팅방에 속해있는 사용자일 때
+      } else if(receivedMessage.message.endsWith("님이 채팅방에 초대되었습니다.") || receivedMessage.message.endsWith("채팅방을 퇴장하였습니다.")) { 
 
-        setRoomData(updatedRoomData);
+        setRoomData(prevRoomData => {
+          return prevRoomData.map(room => {
+            if (room.roomid === receivedMessage.roomid) {
+              return { ...room, count: receivedMessage.count };
+            }
+            
+            return room;
+          });
+        });
       }
     }
   };
@@ -535,11 +567,9 @@ export default MonetMain;
 // 할일
 // 비밀번호 잊었을 때 관련 페이지 생성(이메일로 인증하도록)
 
-
 // 토요일
 // 후 포트폴리오 작성
 // 후 AWS 서버 생성
-
 
 // 사용자가 마지막에 채팅 메세지 띄우기?
 // 없는 URL로 왔을 때 유효하지 않은 페이지? 메세지 후 로그인 화면 이동

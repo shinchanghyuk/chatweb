@@ -65,35 +65,53 @@ router.post('/emailAuthentication', (req, res) => {
                     console.log("monetRouters - emailAuthentication, userData invaild");
                     res.status(200).send('userData invaild');
                 } else {
-                    console.log("monetRouters - emailAuthentication, userData vaild, emailSend")
-                    emailSend(res, req.body.userid, req.body.email, emailcode);
+                    console.log("monetRouters - emailAuthentication, userData vaild, emailSend");
+                    emailSend(req.body.userid, req.body.email, emailcode).then(result => {
+                        console.log('monetRouters - emailAuthentication, result : ', result);
+                        res.status(200).send(result);
+                    }).catch(error => {
+                        console.error('monetRouters - emailAuthentication Exception : ', error);
+                        res.status(500).send(error);
+                    });
+
                 }
             }
         });
     } else {
-        emailSend(req.body.userid, req.body.email, emailcode);
+        emailSend(req.body.userid, req.body.email, emailcode).then(result => {
+            console.log('monetRouters - emailAuthentication, result : ', result);
+            res.status(200).send(result);
+        }).catch(error => {
+            console.error('monetRouters - emailAuthentication Exception : ', error);
+            res.status(500).send(error);
+        });
     }
 });
 
 // 이메일 전송 함수
-function emailSend(res, userid, email, emailcode) {
-    if(emailAuthentication.sendAuthenticationEmail(email, emailcode)) {
+function emailSend(userid, email, emailcode) {
+    let result= '';
 
-        const query = 'INSERT INTO t_emailAuthentication (userid, email, emailcode, createtime) VALUES (?, ?, ?, ?)';
-        const values = [userid, email, emailcode, dateFormat()];
-
-        // 이메일 관련 데이터베이스 작업
-        monetchatDB.executeQuery(query, values, function(err, rows) {
-            if(!err) {
-                res.status(200).send('emailcode send success');
-            } else {
-                console.log('monetRouters - emailAuthentication chatmessage - insert executeQuery Exception  : ', err);
-                res.status(500).send(err);
-            }
-          });
-    } else {
-        res.status(200).send('emailcode send fail');
-    }
+    return new Promise((resolve, reject) => {
+        if(emailAuthentication.sendAuthenticationEmail(email, emailcode)) {
+            const query = 'INSERT INTO t_emailAuthentication (userid, email, emailcode, createtime) VALUES (?, ?, ?, ?)';
+            const values = [userid, email, emailcode, dateFormat()];
+        
+            // 이메일 관련 데이터베이스 작업
+            monetchatDB.executeQuery(query, values, function(err, rows) {
+                if(!err) {
+                    result = 'emailcode send success';
+                    resolve(result);
+                } else {
+                    console.log('monetRouters - emailAuthentication chatmessage - insert executeQuery Exception  : ', err);
+                    reject(err);
+                }
+            });
+        } else {
+            result = 'emailcode send fail';
+            resolve(result);
+        }
+    });
 }
   
 
