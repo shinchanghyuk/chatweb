@@ -257,23 +257,48 @@ function MonetChat({ data, callback }) {
     setIsTitleModify(true);
   };
   
-
   const handleReceiveMessage = (message) => {
     const receivedMessage = JSON.parse(message);
 
     console.log("monetChat - handleReceiveMessage, message : ", message);
 
     // 최초 채팅방에 입장할 때 메세지를 조회하도록 함
-    if(receivedMessage.message === "채팅방에 입장하였습니다.") {
-      console.log("monetChat - handleReceiveMessage init, handleChatMessage START");
+    if(receivedMessage.message.endsWith("채팅방에 입장하였습니다.")) {
+      console.log("monetChat - handleReceiveMessage userEnter, handleChatMessage START");
       setChatData([]);
       handleChatMessage();
 
     // 다른 사용자가 채팅방에 입장할 때 readCount를 업데이트 해야 함
-    } else if(receivedMessage.message.endsWith("님이 채팅방에 입장하였습니다.")) {
-      console.log("monetChat - handleReceiveMessage userEnter, handleChatMessage START");
-      setChatData([]);
-      handleChatMessage();
+    // } else if(receivedMessage.message.endsWith("님이 채팅방에 입장하였습니다.")) {
+    //   console.log("monetChat - handleReceiveMessage userEnter, handleChatMessage START");
+    //   setChatData([]);
+    //   handleChatMessage();
+    
+    } else if(receivedMessage.message.endsWith("님이 채팅방에 초대되었습니다.") || receivedMessage.message.endsWith("퇴장하였습니다.")) {      
+      const callbackMessage = {
+        roomid: receivedMessage.roomid,
+        message: receivedMessage.message,
+        count: receivedMessage.count
+      }
+
+      console.log("monetChat - handleReceiveMessage callbackMessage : ", callbackMessage);
+      callback(JSON.stringify(callbackMessage));
+
+      setChatData(prevRoomData => [...prevRoomData, { senderid: receivedMessage.userid, sendername : receivedMessage.username, message: insertLineBreaks(receivedMessage.message, maxCharacters), createtime: receivedMessage.createtime, readCount: receivedMessage.accountCount - receivedMessage.readCount}]);
+    
+    } else if(receivedMessage.message === "채팅방 이름이 변경되었습니다.") {
+      setTitle(receivedMessage.title);
+      data.state.title = receivedMessage.title;
+
+      const callbackMessage = {
+        roomid: receivedMessage.roomid,
+        title: receivedMessage.title,
+        message: 'chatroom title Modify success'
+      }
+
+      console.log("monetChat - handleReceiveMessage data.state.title : ", data.state.title);
+      callback(JSON.stringify(callbackMessage));
+    
     } else {
       console.log("monetChat - handleReceiveMessage, userid : ", receivedMessage.userid + " username : " + receivedMessage.username);
       setChatData(prevRoomData => [...prevRoomData, { senderid: receivedMessage.userid, sendername : receivedMessage.username, message: insertLineBreaks(receivedMessage.message, maxCharacters), createtime: receivedMessage.createtime, readCount: receivedMessage.accountCount - receivedMessage.readCount}]);
@@ -394,12 +419,12 @@ function MonetChat({ data, callback }) {
                       <div className={`text-muted small text-nowrap mt-4 ${chat.message.endsWith("초대되었습니다.") || chat.message.endsWith("퇴장하였습니다.")  || chat.readCount === 0 || chat.senderid === userid ? 'hidden' : '' }`}>{chat.readCount}</div>
                     </div>
 
-                    <div className={`flex-shrink-1 bg-light rounded py-2 px-3 chat-message ${chat.message.endsWith("초대되었습니다.") || chat.message.endsWith("퇴장하였습니다.") ? '' : (chat.senderid === userid ? 'ml-3' : 'mr-3')}`}>
+                    <div className={`flex-shrink-1 bg-light rounded py-2 px-3 ${chat.message.endsWith("초대되었습니다.") || chat.message.endsWith("퇴장하였습니다.") ? '' : (chat.senderid === userid ? 'ml-3' : 'mr-3')}`}>
                       <div className={`font-weight-bold mb-1 ${chat.message.endsWith("초대되었습니다.") || chat.message.endsWith("퇴장하였습니다.") ? 'hidden' : ''}`}>{chat.sendername}</div>
-                      <div>{chat.message}</div>
+                      <div className='chat-message'>{chat.message}</div>
                     </div>
                     <div>
-                      <div className={`text-muted small text-nowrap mt-4 ml-3 ${chat.message.endsWith("초대되었습니다.") || chat.message.endsWith("퇴장하였습니다.")  || chat.readCount === 0 || chat.senderid !== userid ? 'hidden' : '' }`}>{chat.readCount}</div>
+                      <div className={`text-muted small text-nowrap mt-4 ml-3 ${chat.message.endsWith("초대되었습니다.") || chat.message.endsWith("퇴장하였습니다.")  || chat.readCount <= 0 || chat.senderid !== userid ? 'hidden' : '' }`}>{chat.readCount}</div>
                     </div>
                   </div>  
                 </div>                 

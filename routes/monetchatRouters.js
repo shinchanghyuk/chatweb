@@ -4,8 +4,6 @@ const path = require('path');
 
 const webSocket = require('../utils/webSocketServer.js');
 
-// 퇴장했을 때 웹 소켓으로 보내는 로직추가( 웹 소켓 체크 - t_chatMessage에 넣기 )
-
 const router = express.Router();
 
 // UUID 생성
@@ -30,7 +28,7 @@ router.post('/', (req, res) => {
         message = 'chatuser search success';
     } else if(req.body.searchType === 'room') {
         // 채팅방 데이터 조회 쿼리
-        query = 'SELECT cr.*, COUNT(ca.userid) AS userCount FROM t_chatroom cr LEFT JOIN t_chatAccount ca ON cr.roomid = ca.roomid ' +
+        query = 'SELECT cr.*, COUNT(ca.userid) AS count FROM t_chatroom cr LEFT JOIN t_chatAccount ca ON cr.roomid = ca.roomid ' +
         'WHERE cr.roomid IN (SELECT roomid FROM t_chataccount WHERE userid = ? AND status = 1) ' +
         'AND cr.status = 1 AND ca.status = 1 GROUP BY cr.roomid';
         values = [req.body.userid];
@@ -219,10 +217,16 @@ router.post('/exit', (req, res) => {
                             });
                         }
                     } else { // 사용자가 있을경우
-                        webSocket.exitMessageSend(req.body.roomid, req.body.userid, req.body.username, accountCount);
+                        const exitPromises = [webSocket.exitMessageSend(req.body.roomid, req.body.userid, req.body.username, accountCount)];
+                        // webSocket.inviteMessageSend(req.body.roomid, req.body.userid, req.body.username, accountCount);
+                        
+                        Promise.all(exitPromises).then(() => {
+                            console.log('monetchatRouters - exit chatRoom Promise');
+                            res.status(200).json({ message: 'chatroom exit success' });
+                        }).catch((error) => {
+                            res.status(500).json({ message: error });
+                        });  
                     }
-    
-                    res.status(200).json({ message: 'chatroom exit success' });
                 } else { 
                     console.log('monetchatRouters - exit chatRoom search executeQuery Exception  : ', err);
                     res.status(500).send(err);
@@ -308,9 +312,19 @@ router.post('/titleModify', (req, res) => {
     monetchatDB.executeQuery(query, values, function(err, rows) {
         if(!err) {
             console.log('monetchatRouters - titleModify executeQuery');
-            res.status(200).json({ roomid: req.body.roomid, title: req.body.title, message: 'chatroom title Modify success' });
+
+            const modifyPromises = [webSocket.titleModifyMessageSend(req.body.roomid, req.body.title, req.body.userid)];
+            // webSocket.inviteMessageSend(req.body.roomid, req.body.userid, req.body.username, accountCount);
+            
+            Promise.all(modifyPromises).then(() => {
+                console.log('monetchatRouters - chatroom title Modify Promise');
+                res.status(200).json({ roomid: req.body.roomid, title: req.body.title, message: 'chatroom title Modify success' });
+            }).catch((error) => {
+                res.status(500).json({ message: error });
+            }); 
         } else {
             console.log('monetchatRouters - titleModify executeQuery Exception : ', err);
+            res.status(500).json({ message: error });
         }
     });
 });

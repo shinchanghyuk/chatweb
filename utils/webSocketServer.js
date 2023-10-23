@@ -63,13 +63,6 @@ wss.on('connection', (ws, req) => {
     } else { 
         if(!clientsRoom.has(roomid)) { 
             clientsRoom.set(roomid, []);
-        } else { // 이미 클라이언트 정보가 저장되어있을 때
-
-            // for (const client of clientsRoom.get(roomid)) { // 기존 웹 소켓을 끊음
-            //     if(client.userid === userid) { 
-            //         client.ws.send(JSON.stringify({message: '새로 로그인 되어 기존 웹소켓은 끊어집니다.'}));
-            //     }
-            // }
         }
         
         clientsRoom.get(roomid).push(roomInfo);
@@ -102,9 +95,6 @@ wss.on('connection', (ws, req) => {
                     }
 
                     // 채팅방에 들어왔을 때 readCount를 조정함
-                    // const query = 'UPDATE t_chatMessage SET readCount=readCount + 1 WHERE senderid!=? AND roomid=? AND status=1 AND createtime > ' +
-                    //     'IFNULL((SELECT modifytime FROM t_chatAccount WHERE userid=? AND roomid=? AND status=1), 0) AND ' +
-                    //     'createtime >= (SELECT createtime FROM t_chatAccount WHERE userid=? AND roomid=? AND status=1)'
                     const values = [roomInfo.userid, roomid, roomInfo.userid, roomid];
 
                     monetchatDB.executeQuery(query, values, function(err, rows) {
@@ -125,8 +115,6 @@ wss.on('connection', (ws, req) => {
                                         if (client.ws !== null && client.ws.readyState === 1) {
                                             if(userid !== client.userid) {
                                                 client.ws.send(JSON.stringify({message: message}));
-                                                // client.ws.send(JSON.stringify({ userid: userid, username: username, message: message, 
-                                                //     createtime : createtime, readCount:clientsRoom.get(roomid).length, accountCount}));
                                             } else { 
                                                 client.ws.send(JSON.stringify({message: '채팅방에 입장하였습니다.'}));
                                             }
@@ -149,23 +137,6 @@ wss.on('connection', (ws, req) => {
 
     console.log('사용자 정보 : ', clientsUser);
     console.log('채팅방 정보 : ', clientsRoom);
-    // console.log(`현재 유저 : ${wss.clients.size} 명`);
-
-    // } else {
-    //     // 클라이언트 정보를 저장
-    //     if (!clientsRoom.has(roomid)) {
-    //         clientsRoom.set(roomid, []);
-    //     }
-        
-    //     clientsRoom.get(roomid).push(clientsRoomInfo);
-
-    //     console.log('들어온 유저2 : ', clients);
-    //     console.log(`현재 유저2 : ${wss.clients.size} 명`);
-    // }
-
-    // wss.clients.forEach(client => {
-    //     client.send(`새로운 유저가 접속했습니다. 현재 유저 ${wss.clients.size} 명`);
-    // })
 
     // 클라이언트로부터 메시지를 받았을 때
     ws.on('message', (message) => {
@@ -359,39 +330,6 @@ function dateFormat() {
     return `${year}${month}${day}${hours}${minutes}${seconds}`;
 }
 
-function exitMessageSend(roomid, userid, username, accountCount) { 
-    console.log('webSocketServer - exitMessageSend, roomid : ' + roomid);
-
-    const clientsRoomInfo = clientsRoom.get(roomid);
-    let createtime = dateFormat();
-    let message = username + "님이 채팅방을 퇴장하였습니다.";
-
-    if(clientsRoomInfo) {
-        const query = 'INSERT INTO t_chatMessage (roomid, senderid, sendername, chatmessage, createtime, readcount, accountCount) VALUES (?, ?, ?, ?, ?, ?, ?)';
-        const values = [roomid, userid, username, message, createtime, clientsRoomInfo.length, accountCount];
-        
-        monetchatDB.executeQuery(query, values, function(err, rows) {
-            if(!err) {
-                console.log('webSocketServer - exitMessageSend chatRoom exit message Insert executeQuery');
-            } else { 
-                console.log('webSocketServer - exitMessageSend chatRoom exit message Insert executeQuery Exception : ', err);
-            }
-        });
-    
-        // 채팅방에 있는 사용자에게 나갔다는 메세지 전송
-        for (const client of clientsRoomInfo) {
-            if (client.ws !== null && client.ws.readyState === 1) {
-                if(userid !== client.userid) {
-                    client.ws.send(JSON.stringify({ userid: userid, username: username, message: message, 
-                        createtime : createtime, readCount:clientsRoomInfo.length, accountCount}));
-                }
-            } else {
-                console.log("webSocketServer - exitMessageSend client.ws.readyState : ", client.ws.readyState);
-            }
-        }
-    }
-}
-
 // 사용자의 상태를 검색
 function userConnectionSearch(userList) {
     console.log('webSocketServer - userConnectionSearch, userList : ', userList);
@@ -431,6 +369,94 @@ function userWebsocketSearch(userid) {
     });
 }
 
+function titleModifyMessageSend(roomid, title, userid) {
+    console.log('webSocketServer - titleModifyMessageSend, roomid : ' + roomid);
+
+    return new Promise((resolve, reject) => {
+    
+        const clientsRoomInfo = clientsRoom.get(roomid);
+        let message = "채팅방 이름이 변경되었습니다.";
+
+        let chatUser = [];
+
+        if(clientsRoomInfo) {    
+            // 채팅방에 있는 사용자에게 채팅방 이름이 변경되었다는 메세지 전송
+            for (const client of clientsRoomInfo) {
+                if (client.ws !== null && client.ws.readyState === 1) {
+                    chatUser.push(client.userid);
+                    if(userid !== client.userid) {
+                        client.ws.send(JSON.stringify({ roomid:roomid, title: title, message: message}));
+                    }
+                } else {
+                    console.log("webSocketServer - titleModifyMessageSend client.ws.readyState : ", client.ws.readyState);
+                }
+            }
+
+            // 채팅방에 있는 사용자이지만, 로그인만 되어있는 사용자에게 보내야함
+            const otherUserPromises = [otherUserMessageSend(chatUser, roomid, userid, title, message, '')];
+
+            Promise.all(otherUserPromises).then(() => {
+                console.log('webSocketServer - titleModifyMessageSend Promise');
+                resolve();
+            }).catch((error) => {
+                reject(error);
+            });
+        }
+    });
+}
+
+function exitMessageSend(roomid, userid, username, accountCount) { 
+    console.log('webSocketServer - exitMessageSend, roomid : ' + roomid);
+
+    return new Promise((resolve, reject) => {
+
+        const clientsRoomInfo = clientsRoom.get(roomid);
+        let createtime = dateFormat();
+        let message = username + "님이 채팅방을 퇴장하였습니다.";
+
+        let chatUser = [];
+
+        if(clientsRoomInfo) {
+            const query = 'INSERT INTO t_chatMessage (roomid, senderid, sendername, chatmessage, createtime, readcount, accountCount) VALUES (?, ?, ?, ?, ?, ?, ?)';
+            const values = [roomid, userid, username, message, createtime, clientsRoomInfo.length, accountCount];
+            
+            monetchatDB.executeQuery(query, values, function(err, rows) {
+                if(!err) {
+                    console.log('webSocketServer - exitMessageSend chatRoom exit message Insert executeQuery');
+
+                    // 채팅방에 있는 사용자에게 나갔다는 메세지 전송
+                    for (const client of clientsRoomInfo) {
+                        if (client.ws !== null && client.ws.readyState === 1) {
+                            chatUser.push(client.userid);
+
+                            if(userid !== client.userid) {
+                                client.ws.send(JSON.stringify({ roomid:roomid, userid: userid, username: username, message: message, 
+                                    createtime : createtime, readCount:clientsRoomInfo.length, count:accountCount}));
+                            }
+                        } else {
+                            console.log("webSocketServer - exitMessageSend client.ws.readyState : ", client.ws.readyState);
+                        }
+                    }
+
+                    console.log('webSocketServer - exitMessageSend otherUserMessageSend before');
+
+                    // 채팅방에 있는 사용자이지만, 로그인만 되어있는 사용자에게 보내야함
+                    const otherUserPromises = [otherUserMessageSend(chatUser, roomid, userid, '', message, accountCount)];
+
+                    Promise.all(otherUserPromises).then(() => {
+                        console.log('webSocketServer - exitMessageSend Promise');
+                        resolve();
+                    }).catch((error) => {
+                        reject(error);
+                    });  
+                } else { 
+                    console.log('webSocketServer - exitMessageSend chatRoom exit message Insert executeQuery Exception : ', err);
+                    reject(err);
+                }
+            });
+        }
+    });
+}
 
 // 채팅방에서 다른 사용자 초대했을 때 동작
 function inviteMessageSend(roomid, title, userid, username) { 
@@ -454,6 +480,8 @@ function inviteMessageSend(roomid, title, userid, username) {
                 const query = 'INSERT INTO t_chatMessage (roomid, senderid, sendername, chatmessage, createtime, readcount, accountCount) VALUES (?, ?, ?, ?, ?, ?, ?)';
                 const values = [roomid, userid, username, message, createtime, clientsRoomInfo.length, accountCount];
 
+                let chatUser = [];
+
                 monetchatDB.executeQuery(query, values, function(err, rows) {
                     if(!err) {
                         console.log('webSocketServer - inviteMessageSend chatMessage insert executeQuery');
@@ -461,31 +489,41 @@ function inviteMessageSend(roomid, title, userid, username) {
                         // 채팅방에 있는 사용자에게 초대되었다는 메세지 전송
                         for (const client of clientsRoomInfo) {
                             if (client.ws !== null && client.ws.readyState === 1) {
+                                chatUser.push(client.userid);
                                 if(userid !== client.userid) {
-                                    client.ws.send(JSON.stringify({ userid: userid, username: username, message: message, 
-                                        createtime : createtime, readCount:clientsRoomInfo.length, accountCount}));
+                                    client.ws.send(JSON.stringify({ roomid: roomid, title:title, userid: userid, username: username, message: message, 
+                                        createtime : createtime, readCount:clientsRoomInfo.length, count:accountCount}));
                                 }
                             } else {
                                 console.log("webSocketServer - inviteMessageSend clientsRoom ws.readyState : ", client.ws.readyState);
                             }
                         }
+                        
+                        // 채팅방에 있는 사용자이지만, 로그인만 되어있는 사용자에게 보내야함
+                        const otherUserPromises = [otherUserMessageSend(chatUser, roomid, userid, title, message, accountCount)];
+
+                        Promise.all(otherUserPromises).then(() => {
+                            console.log('webSocketServer - inviteMessageSend Promise');
+                        }).catch((error) => {
+                            reject(error);
+                        });  
 
                         // 초대된 사용자에게 초대되었다는 메세지 전송
                         if(clientsUser.has(userid)) {
                             message = title + '에 초대되었습니다.';
 
                             if (clientsUser.get(userid)[0].ws !== null && clientsUser.get(userid)[0].ws.readyState === 1) {
-                                clientsUser.get(userid)[0].ws.send(JSON.stringify({ roomid:roomid, title:title, message: message, createtime : createtime}));
+                                clientsUser.get(userid)[0].ws.send(JSON.stringify({ roomid:roomid, title:title, message: message, count: accountCount, createtime: createtime}));
                             }
                         } else {
                             console.log('webSocketServer - inviteMessageSend clientsUser empty');
                         }
-                   
+                            
                         console.log('webSocketServer - inviteMessageSend chatMessage insert resolve');
                         resolve();
                     } else {
-                        console.log('webSocketServer - inviteMessageSend chatMessage insert executeQuery Exception : ', err);
-                        reject();
+                        console.log("webSocketServer - inviteMessageSend not user in chat send Exception : ", err);
+                        reject(err);
                     }
                 });
             } else {
@@ -495,10 +533,58 @@ function inviteMessageSend(roomid, title, userid, username) {
     });
 }
 
+function otherUserMessageSend(chatUser, roomid, userid, title, message, accountCount) {
+    return new Promise((resolve, reject) => {
+
+        if(chatUser !== undefined && chatUser !== null && chatUser !== '') {
+            console.log("webSocketServer - otherUserMessageSend chatUser : ", chatUser);
+            
+            chatUser.push(userid);
+
+            let query = 'SELECT userid FROM t_chatAccount WHERE status=1 AND roomid=?';
+            
+            if (chatUser.length > 0) {
+                query += ' AND userid NOT IN (';
+                for (let i = 0; i < chatUser.length; i++) {
+                query += '?, ';
+                }
+
+                // 마지막 쉼표와 공백 제거
+                query = query.slice(0, -2);
+                query += ')';
+            }
+
+            const values = [roomid, ...chatUser];
+
+            monetchatDB.executeQuery(query, values, function(err, rows) {
+                if(!err) {
+                    console.log('webSocketServer - otherUserMessageSend executeQuery');
+                    
+                    for(let i = 0; i < rows.length; i++) {
+                        if(clientsUser.has(rows[i].userid)) {
+                            if (clientsUser.get(rows[i].userid)[0].ws !== null && clientsUser.get(rows[i].userid)[0].ws.readyState === 1) {
+                                clientsUser.get(rows[i].userid)[0].ws.send(JSON.stringify({ roomid:roomid, title: title, message: message, count:accountCount}));
+                            }
+                        }
+                    }
+
+                    resolve();
+                } else {
+                    console.log("webSocketServer - otherUserMessageSend Exception : ", err);
+                    reject();
+                }
+            });
+        } else {
+            console.log("webSocketServer - otherUserMessageSend chatUser empty");
+        }
+    });
+}
+
 // 모듈로 내보내기
 module.exports = {
     inviteMessageSend,
     exitMessageSend,
     userConnectionSearch,
-    userWebsocketSearch
+    userWebsocketSearch,
+    titleModifyMessageSend
 };
