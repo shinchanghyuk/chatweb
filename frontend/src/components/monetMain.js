@@ -30,6 +30,7 @@ function MonetMain() {
   const [chatStatus, setChatStatus] = useState(false);
   const [data, setData] = useState('');
 
+  const baseURL = process.env.REACT_APP_API_URL;
   let webSocket;
 
   // useNavigate을 사용하여 navigate 객체를 가져옴
@@ -251,7 +252,7 @@ function MonetMain() {
     }
 
     axios({
-      url: "http://localhost:8080/monetchat/",
+      url: baseURL + "monetchat/",
       method: "POST",
       data: {
         userid: searchUserid,
@@ -289,7 +290,7 @@ function MonetMain() {
     }
 
     axios({
-      url: "http://localhost:8080/monetchat/",
+      url: baseURL + "monetchat/",
       method: "POST",
       data: {
         userid: searchUserid,
@@ -331,7 +332,7 @@ function MonetMain() {
     }
 
     await axios({
-      url: "http://localhost:8080/monetchat/enter/",
+      url: baseURL + "monetchat/enter/",
       method: "POST",
       data: {
         userid: sessionStorage.getItem("userid"),
@@ -374,7 +375,7 @@ function MonetMain() {
     console.log("MonetMain - handleExit");
 
     axios({
-      url: "http://localhost:8080/monetchat/exit/",
+      url: baseURL + "monetchat/exit/",
       method: "POST",
       data: {
         userid: sessionStorage.getItem("userid"),

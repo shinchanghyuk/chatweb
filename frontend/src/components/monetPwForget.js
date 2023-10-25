@@ -24,6 +24,8 @@ function MonetForget() {
     'naver.com',
   ];
 
+  const baseURL = process.env.REACT_APP_API_URL;
+
   // useNavigate을 사용하여 navigate 객체를 가져옴
   const navigate = useNavigate();
 
@@ -39,7 +41,7 @@ function MonetForget() {
     console.log("MonetRegister - handleEmailcodeSend");
 
     axios({
-        url: "http://localhost:8080/monet/emailAuthentication/",
+        url: baseURL + "monet/emailAuthentication/",
         method: "POST",
         data: {
           userid: userid,
@@ -65,7 +67,7 @@ function MonetForget() {
     console.log("MonetRegister - handleEmailcodeVerify");
 
     axios({
-        url: "http://localhost:8080/monet/emailVerify/",
+        url: baseURL + "monet/emailVerify/",
         method: "POST",
         data: {
           userid: userid,
@@ -104,7 +106,7 @@ function MonetForget() {
     }
 
     axios({
-      url: "http://localhost:8080/monet/signPwSetting/",
+      url: baseURL + "monet/signPwSetting/",
       method: "POST",
       data: {
         userid: userid,

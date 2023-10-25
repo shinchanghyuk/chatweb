@@ -1,16 +1,27 @@
 const mysql = require('mysql');
-
-const fs = require('fs');
 const path = require('path');
 
-const rawConfig = fs.readFileSync('config.json');
-const config = JSON.parse(rawConfig);
+let envPath;
+switch (process.env.NODE_ENV) {
+case "prod":
+  envPath = `${__dirname}/../.env.prod`;
+    break;
+case "dev":
+  envPath = `${__dirname}/../.env.development`;
+    break;
+default:
+  envPath = `${__dirname}/../../.env.dev`;
+}
+
+require('dotenv').config({ path: envPath }); // envPath 설정
+console.log(process.env.database_port);
 
 // 설정 파일에서 데이터베이스 연결 정보 추출
-const dbHost = config.database.host;
-const dbUser = config.database.user;
-const dbPassword = config.database.password;
-const dbName = config.database.database;
+const dbHost = process.env.database_host;
+const dbUser = process.env.database_user;
+const dbPassword = process.env.database_password;
+const dbName = process.env.database_database;
+const dbPort = process.env.database_port;
 
 // MySQL 연결 설정
 const connection = mysql.createConnection({
@@ -18,6 +29,7 @@ const connection = mysql.createConnection({
   user: dbUser,
   password: dbPassword,
   database: dbName,
+  port: dbPort
 });
 
 // const connection = mysql.createConnection({
