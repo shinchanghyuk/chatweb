@@ -1,12 +1,10 @@
 const nodemailer = require('nodemailer');
 
-const fs = require('fs');
-const rawConfig = fs.readFileSync('config.json');
-const config = JSON.parse(rawConfig);
+require('dotenv').config();
 
 // 설정 파일에서 이메일 설정 추출
-const emailUser = config.email.user;
-const emailPassword = config.email.password;
+const emailUser = process.env.email_user;
+const emailPassword = process.env.email_password;
 
 // nodemailer 설정
 const transporter = nodemailer.createTransport({

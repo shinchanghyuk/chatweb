@@ -13,6 +13,8 @@ function MonetLogin() {
     // useNavigate을 사용하여 navigate 객체를 가져옴
     const navigate = useNavigate();
 
+    const baseURL = process.env.REACT_APP_API_URL;
+
     // Register 버튼 클릭
     const handleRegisterMove = () => {
         console.log("MonetLogin - handleRegisterMove");
@@ -42,7 +44,7 @@ function MonetLogin() {
         }
 
         axios({
-            url: "http://localhost:8080/monet/signIn/",
+            url: baseURL + "monet/signIn/",
             method: "POST",
             data: {
               userid: userid,

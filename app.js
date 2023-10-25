@@ -1,3 +1,7 @@
+require('dotenv').config({
+    path: `.env.${process.env.NODE_ENV}`
+});
+  
 // express로 서버구축
 const express = require('express');
 const path = require('path');

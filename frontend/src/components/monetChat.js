@@ -32,6 +32,7 @@ function MonetChat({ data, callback }) {
   const [isTitleModify, setIsTitleModify] = useState(false);
 
   const maxCharacters = 30;
+  const baseURL = process.env.REACT_APP_API_URL;
 
   // useNavigate을 사용하여 navigate 객체를 가져옴
   // 만약 monetMain와 monetChat 컴포넌트를 따로 쓸거면 이를 통해서 데이터 전달을 해야함
@@ -137,7 +138,7 @@ function MonetChat({ data, callback }) {
     }
 
     axios({
-      url: "http://localhost:8080/monetchat/chatmessage/",
+      url: baseURL + "monetchat/chatmessage/",
       method: "POST",
       data: {
         userid: searchUserid,
@@ -220,7 +221,7 @@ function MonetChat({ data, callback }) {
     setIsTitleModify(false);
 
     axios({
-      url: "http://localhost:8080/monetchat/titleModify/",
+      url: baseURL + "monetchat/titleModify/",
       method: "POST",
       data: {
         userid: sessionStorage.getItem("userid"),
@@ -326,7 +327,7 @@ function MonetChat({ data, callback }) {
     console.log("monetChat - handleInvite, userid : " + userid + ", username : " + username + ", roomid : " + roomid);
 
     axios({
-      url: "http://localhost:8080/monetchat/invite/",
+      url: baseURL + "monetchat/invite/",
       method: "POST",
       data: {
         userid: userid,

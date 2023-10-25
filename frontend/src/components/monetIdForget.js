@@ -19,6 +19,8 @@ function MonetForget() {
     'naver.com',
   ];
 
+  const baseURL = process.env.REACT_APP_API_URL;
+
   // useNavigate을 사용하여 navigate 객체를 가져옴
   const navigate = useNavigate();
 
@@ -45,7 +47,7 @@ function MonetForget() {
     }
 
     axios({
-      url: "http://localhost:8080/monet/signIdFind/",
+      url: baseURL + "monet/signIdFind/",
       method: "POST",
       data: {
         username: username,
