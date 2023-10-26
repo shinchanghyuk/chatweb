@@ -37,7 +37,7 @@ function MonetRegister() {
     console.log("MonetRegister - handleUserCheck");
 
     axios({
-        url: baseURL + "monet/userCheck/",
+        url: baseURL + "user/userCheck/",
         method: "POST",
         data: {
           userid: userid,
@@ -59,7 +59,7 @@ function MonetRegister() {
     console.log("MonetRegister - handleEmailcodeSend");
 
     axios({
-        url: baseURL + "monet/emailAuthentication/",
+        url: baseURL + "user/emailAuthentication/",
         method: "POST",
         data: {
           userid: userid,
@@ -83,7 +83,7 @@ function MonetRegister() {
     console.log("MonetRegister - handleEmailcodeVerify");
 
     axios({
-        url: baseURL + "monet/emailVerify/",
+        url: baseURL + "user/emailVerify/",
         method: "POST",
         data: {
           userid: userid,
@@ -107,7 +107,7 @@ function MonetRegister() {
     console.log("MonetRegister - handleRegister");
 
     axios({
-        url: baseURL + "monet/signUp/",
+        url: baseURL + "user/signUp/",
         method: "POST",
         data: {
           userid: userid,
@@ -118,7 +118,7 @@ function MonetRegister() {
     }).then(res => {
         if(res.data === "signUp success") {
           alert("회원가입이 완료되었습니다. 재 로그인 해주세요.");
-          navigate('/');
+          navigate('/monetchat');
         } else {
           alert("로그인에 실패하였습니다.");
         }
@@ -131,7 +131,7 @@ function MonetRegister() {
   const handleLoginMove = () => {
     console.log("MonetRegister - handleLoginMove");
 
-    navigate('/'); // '/monetRegister' 경로로 이동
+    navigate('/monetchat'); // '/monetRegister' 경로로 이동
   };
 
   return (

@@ -1,20 +1,4 @@
 const mysql = require('mysql');
-const path = require('path');
-
-let envPath;
-switch (process.env.NODE_ENV) {
-case "prod":
-  envPath = `${__dirname}/../.env.prod`;
-    break;
-case "dev":
-  envPath = `${__dirname}/../.env.development`;
-    break;
-default:
-  envPath = `${__dirname}/../../.env.dev`;
-}
-
-require('dotenv').config({ path: envPath }); // envPath 설정
-console.log(process.env.database_port);
 
 // 설정 파일에서 데이터베이스 연결 정보 추출
 const dbHost = process.env.database_host;
@@ -32,20 +16,13 @@ const connection = mysql.createConnection({
   port: dbPort
 });
 
-// const connection = mysql.createConnection({
-//   host: 'localhost',
-//   user: 'monetchat',
-//   password: 'fnehfvmsla1!',
-//   database: 'monetchatDB',
-// });
-
 // MySQL 연결
 function connect() {
   connection.connect((err) => {
     if (err) {
-      console.error('MySQL 연결 오류:', err);
+      console.error('databases - connection Exception : ', err);
     } else {
-      console.log('MySQL 연결 성공');
+      console.log('databases - connection success');
     }
   });
 }
@@ -54,7 +31,7 @@ function connect() {
 function executeQuery(query, values, callback) {
   connection.query(query, values, (err, rows, fields) => {
     if (err) {
-      console.error('쿼리 오류:', err);
+      console.error('databases executeQuery Exception : ', err);
       callback(err, null, null);
     } else {
       callback(null, rows, fields);

@@ -33,7 +33,7 @@ function MonetForget() {
   const handleLoginMove = () => {
       console.log("MonetRegister - handleLoginMove");
 
-      navigate('/'); // '/monetLogin' 경로로 이동
+      navigate('/monetchat'); // '/monetLogin' 경로로 이동
   };
 
   // 인증번호 전송 버튼 클릭
@@ -41,7 +41,7 @@ function MonetForget() {
     console.log("MonetRegister - handleEmailcodeSend");
 
     axios({
-        url: baseURL + "monet/emailAuthentication/",
+        url: baseURL + "user/emailAuthentication/",
         method: "POST",
         data: {
           userid: userid,
@@ -67,7 +67,7 @@ function MonetForget() {
     console.log("MonetRegister - handleEmailcodeVerify");
 
     axios({
-        url: baseURL + "monet/emailVerify/",
+        url: baseURL + "user/emailVerify/",
         method: "POST",
         data: {
           userid: userid,
@@ -106,7 +106,7 @@ function MonetForget() {
     }
 
     axios({
-      url: baseURL + "monet/signPwSetting/",
+      url: baseURL + "user/signPwSetting/",
       method: "POST",
       data: {
         userid: userid,
@@ -116,7 +116,7 @@ function MonetForget() {
       if(res.status === 200 && res.data.message === 'signPwSetting success') { 
         alert('비밀번호가 재설정 되었습니다. 재로그인 해주세요.');
 
-        navigate('/');
+        navigate('/monetchat');
         
       } else {
           alert("비밀번호 재설정에 실패하였습니다. 다시 시도해주세요.");

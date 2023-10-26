@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import WebSocket from '../utils/webSocket';
-
-// import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 // 부트스트랩
@@ -25,7 +23,6 @@ function MonetChat({ data, callback }) {
   const [roomid, setRoomid] = useState('');
   const [title, setTitle] = useState('');
 
-
   // 채팅 데이터
   const [chatData, setChatData] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,10 +31,6 @@ function MonetChat({ data, callback }) {
   const maxCharacters = 30;
   const baseURL = process.env.REACT_APP_API_URL;
 
-  // useNavigate을 사용하여 navigate 객체를 가져옴
-  // 만약 monetMain와 monetChat 컴포넌트를 따로 쓸거면 이를 통해서 데이터 전달을 해야함
-  // const navigate = useNavigate();
-  // const location = useLocation();
 
   useEffect(() => {
     console.log('monetChat - useEffect, data : ', data);
@@ -138,7 +131,7 @@ function MonetChat({ data, callback }) {
     }
 
     axios({
-      url: baseURL + "monetchat/chatmessage/",
+      url: baseURL + "chat/chatmessage/",
       method: "POST",
       data: {
         userid: searchUserid,
@@ -200,7 +193,6 @@ function MonetChat({ data, callback }) {
   const handleExit = () => {
     console.log("monetChat - handleExit");
 
-    // navigate('/monetMain'); // '/monetRegister' 경로로 이동
     const responseData = {
       message: 'chatroom exit success'
     }
@@ -221,7 +213,7 @@ function MonetChat({ data, callback }) {
     setIsTitleModify(false);
 
     axios({
-      url: baseURL + "monetchat/titleModify/",
+      url: baseURL + "chat/titleModify/",
       method: "POST",
       data: {
         userid: sessionStorage.getItem("userid"),
@@ -327,7 +319,7 @@ function MonetChat({ data, callback }) {
     console.log("monetChat - handleInvite, userid : " + userid + ", username : " + username + ", roomid : " + roomid);
 
     axios({
-      url: baseURL + "monetchat/invite/",
+      url: baseURL + "chat/invite/",
       method: "POST",
       data: {
         userid: userid,
