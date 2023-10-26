@@ -86,7 +86,7 @@ function MonetMain() {
     } else if(sessionStorage.getItem("userid") === undefined || sessionStorage.getItem("userid") === null || sessionStorage.getItem("userid") === '') {
       console.log('MonetMain - useEffect, userid is null');
       alert('유효하지 않는 접근입니다.');
-      navigate('/');
+      navigate('/monetchat');
     }
   }
 
@@ -169,7 +169,7 @@ function MonetMain() {
         console.log('MonetMain - handleReceiveMessage new user Login, socket is null');
       }
     
-      navigate('/');
+      navigate('/monetchat');
     } else if(receivedMessage.message === "채팅방 이름이 변경되었습니다.") {
 
       setRoomData(prevRoomData => {
@@ -252,7 +252,7 @@ function MonetMain() {
     }
 
     axios({
-      url: baseURL + "monetchat/",
+      url: baseURL + "chat/",
       method: "POST",
       data: {
         userid: searchUserid,
@@ -290,7 +290,7 @@ function MonetMain() {
     }
 
     axios({
-      url: baseURL + "monetchat/",
+      url: baseURL + "chat/",
       method: "POST",
       data: {
         userid: searchUserid,
@@ -332,7 +332,7 @@ function MonetMain() {
     }
 
     await axios({
-      url: baseURL + "monetchat/enter/",
+      url: baseURL + "chat/enter/",
       method: "POST",
       data: {
         userid: sessionStorage.getItem("userid"),
@@ -375,7 +375,7 @@ function MonetMain() {
     console.log("MonetMain - handleExit");
 
     axios({
-      url: baseURL + "monetchat/exit/",
+      url: baseURL + "chat/exit/",
       method: "POST",
       data: {
         userid: sessionStorage.getItem("userid"),
@@ -500,7 +500,7 @@ function MonetMain() {
         setSocket(null);
       }
       
-      navigate('/'); // 로그인 페이지로 이동
+      navigate('/monetchat'); // 로그인 페이지로 이동
     }
   };
 

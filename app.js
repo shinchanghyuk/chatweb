@@ -16,9 +16,10 @@ const monetChatRouter = require('./routes/monetchatRouters.js');
 app.use(express.json()); 
 app.use(express.urlencoded( {extended : false } ));
 
-app.use("/", router);
-app.use("/monet", monetRouter);
-app.use("/monetchat", monetChatRouter);
+app.use("/monetchat", router);
+
+app.use("/monetchat/user", monetRouter);
+app.use("/monetchat/chat", monetChatRouter);
 
 // const cors = require('cors');
 // app.use(cors());

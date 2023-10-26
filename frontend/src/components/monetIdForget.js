@@ -28,7 +28,7 @@ function MonetForget() {
   const handleLoginMove = () => {
       console.log("MonetRegister - handleLoginMove");
 
-      navigate('/'); // '/monetLogin' 경로로 이동
+      navigate('/monetchat'); // '/monetLogin' 경로로 이동
   };
 
   const handleIdFind = () => {
@@ -47,7 +47,7 @@ function MonetForget() {
     }
 
     axios({
-      url: baseURL + "monet/signIdFind/",
+      url: baseURL + "user/signIdFind/",
       method: "POST",
       data: {
         username: username,

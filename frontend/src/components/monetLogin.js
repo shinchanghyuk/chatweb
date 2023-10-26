@@ -19,14 +19,14 @@ function MonetLogin() {
     const handleRegisterMove = () => {
         console.log("MonetLogin - handleRegisterMove");
         
-        navigate('/monetRegister'); // '/monetRegister' 경로로 이동
+        navigate('/monetchat/monetRegister'); // '/monetRegister' 경로로 이동
     };
 
     // Forget 버튼 클릭
     const handleForgetMove = () => {
         console.log("MonetLogin - handleForgetMove");
         
-        navigate('/monetForget'); // '/monetForget' 경로로 이동
+        navigate('/monetchat/monetForget'); // '/monetForget' 경로로 이동
     };
     
     // 로그인 버튼 클릭
@@ -44,7 +44,7 @@ function MonetLogin() {
         }
 
         axios({
-            url: baseURL + "monet/signIn/",
+            url: baseURL + "user/signIn/",
             method: "POST",
             data: {
               userid: userid,
@@ -62,7 +62,7 @@ function MonetLogin() {
                 sessionStorage.setItem("username", res.data.username);
                 sessionStorage.setItem("usertype", res.data.usertype);
                 
-                navigate('/monetMain'); // '/monetRegister' 경로로 이동
+                navigate('/monetchat/monetMain'); // '/monetRegister' 경로로 이동
             } else {
                 alert("로그인에 실패하였습니다.");
             }

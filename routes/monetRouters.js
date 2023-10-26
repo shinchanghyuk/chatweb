@@ -7,22 +7,33 @@ const emailAuthentication = require('../utils/emailAuthentication');
 
 // 데이터베이스 커넥션 파일
 const monetchatDB = require('../utils/databases.js');
-
 const webSocket = require('../utils/webSocketServer.js');
 
-// localhost:8080
-// router.get('/', (req, res) => {
-//     console.log("routers, START");
 
-//     res.sendFile(path.resolve('frontend/build/index.html'));
+// // localhost:8080/notification
+// router.get('/notification', (req, res) => {
+//     console.log("monetRouters, notification, req.body : ", req.body);
 // });
 
-// localhost:8080/notification
-router.get('/notification', (req, res) => {
-    console.log("monetRouters, notification, req.body : ", req.body);
+// 회원가입 화면에서 새로고침 시 동작
+router.get('/monetRegister', (req, res) => {
+    console.log("routers - monetRegister");
+    res.sendFile(path.resolve('frontend/build/index.html'));
 });
 
-// localhost:8080/userCheck
+// 메인화면에서 새로고침 시 동작
+router.get('/monetMain', (req, res) => {
+    console.log("routers - monetMain");
+    res.sendFile(path.resolve('frontend/build/index.html'));
+});
+
+// 아이디/비밀번호 찾기에서 새로고침 시 동작
+router.get('/monetForget', (req, res) => {
+    console.log("routers - monetForget");
+    res.sendFile(path.resolve('frontend/build/index.html'));
+});
+
+// localhost:8080/monetchat/user/userCheck
 // 사용자 아이디 중복체크 API
 router.post('/userCheck', (req, res) => {
     console.log("monetRouters - userCheck, req.body : ", req.body);
@@ -47,7 +58,7 @@ router.post('/userCheck', (req, res) => {
     });
 });
 
-// localhost:8080/emailAuthentication
+// localhost:8080/monetchat/user/emailAuthentication
 // 사용자 이메일 인증 API
 router.post('/emailAuthentication', (req, res) => {
     console.log("monetRouters - emailAuthentication, req.body : ", req.body);
@@ -115,7 +126,7 @@ function emailSend(userid, email, emailcode) {
 }
   
 
-// localhost:8080/emailVerify
+// localhost:8080/monetchat/user/emailVerify
 // 사용자 이메일 인증코드 확인 API
 router.post('/emailVerify', function(req, res) {
     console.log("monetRouters - emailVerify, req.body : ", req.body);
@@ -179,7 +190,7 @@ router.post('/emailVerify', function(req, res) {
     });
 });
 
-// localhost:8080/signUp
+// localhost:8080/monetchat/user/signUp
 // 사용자 회원가입 API
 router.post('/signUp', (req, res) => {
     console.log("monetRouters - signUp, req.body : ", req.body);
@@ -199,28 +210,7 @@ router.post('/signUp', (req, res) => {
      });
 });
 
-// router.get('/*', function(req, res) {
-//     console.log('routers - GET not existing URL1');
-//     res.sendFile(path.resolve('frontend/build/index.html'), function(err) {
-//         if (err) {
-//             console.log('routers - GET not existing Exception : ', err);
-//             res.status(500).send(err)
-//         }
-//     })
-// })
-
-// router.post('/*', function(req, res) {
-//     console.log('routers - POST not existing URL');
-//     res.sendFile(path.resolve('frontend/build/index.html'), function(err) {
-//       if (err) {
-//         console.log('routers - POST not existing Exception : ', err);
-//         res.status(500).send(err)
-//       }
-//     })
-// })
-
-
-// localhost:8080/signIn
+// localhost:8080/monetchat/user/signIn
 // 사용자 로그인 API
 router.post('/signIn', (req, res) => {
     console.log("monetRouters - signIn, req.body : ", req.body);
@@ -260,7 +250,7 @@ router.post('/signIn', (req, res) => {
     });
 });
 
-// localhost:8080/monet/signIdFind
+// localhost:8080/monetchat/user/signIdFind
 // 사용자 아이디 찾기 API
 router.post('/signIdFind', (req, res) => {
     console.log("monetRouters - signIdFind, req.body : ", req.body);
@@ -291,7 +281,7 @@ router.post('/signIdFind', (req, res) => {
     });
 });
 
-// localhost:8080/monet/signPwFind
+// localhost:8080/monetchat/user/signPwFind
 // 사용자 비밀번호 재설정 API
 router.post('/signPwSetting', (req, res) => {
     console.log("monetRouters - signPwSetting, req.body : ", req.body);

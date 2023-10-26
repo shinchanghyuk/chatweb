@@ -12,7 +12,7 @@ const uuid = require('uuid');
 // 데이터베이스 커넥션 파일
 const monetchatDB = require('../utils/databases.js');
 
-// localhost:8080/monetchat
+// localhost:8080/monetchat/chat
 // monet 채팅서비스 메인화면
 router.post('/', (req, res) => {  
     console.log("monetchatRouters, req.body : ", req.body);
@@ -56,7 +56,7 @@ router.post('/', (req, res) => {
     });
 });
 
-// localhost:8080/monetchat/enter
+// localhost:8080/monetchat/chat/enter
 // monet 채팅서비스 채팅방 들어갔을 때 API
 router.post('/enter', (req, res) => {
     console.log("monetchatRouters - enter req.body : ", req.body);
@@ -151,7 +151,7 @@ router.post('/enter', (req, res) => {
     }
 });
 
-// localhost:8080/monetchat/chatmessage
+// localhost:8080/monetchat/chat/chatmessage
 // monet 채팅서비스 채팅방 들어간 후 메세지 불러오는 API
 // 사용자가 들어갔을 때, 최초 들어간 시간을 비교하여 데이터를 가져옴
 router.post('/chatmessage', (req, res) => {
@@ -172,7 +172,7 @@ router.post('/chatmessage', (req, res) => {
     });
 });
 
-// localhost:8080/monetchat/exit
+// localhost:8080/monetchat/chat/exit
 // monet 채팅서비스 채팅방 나가기 API
 router.post('/exit', (req, res) => {
     // 나간 사용자의 테이블 status 변경
@@ -239,7 +239,7 @@ router.post('/exit', (req, res) => {
     });
 });
 
-// localhost:8080/monetchat/invite
+// localhost:8080/monetchat/chat/invite
 // monet 채팅서비스 채팅방 들어갔을 때 API
 router.post('/invite', (req, res) => {  
     console.log('monetchatRouters - invite, req.body : ', req.body);
@@ -300,7 +300,7 @@ router.post('/invite', (req, res) => {
     });
 });
 
-// localhost:8080/monetchat/titleModify
+// localhost:8080/monetchat/chat/titleModify
 // monet 채팅서비스 채팅방 이름 변경 API
 router.post('/titleModify', (req, res) => {  
     console.log('monetchatRouters - titleModify, req.body : ', req.body);
@@ -328,28 +328,6 @@ router.post('/titleModify', (req, res) => {
         }
     });
 });
-
-
-// router.get('/*', function(req, res) {
-//     console.log('monetchatRouters - GET not existing URL1');
-//     res.sendFile(path.resolve('frontend/build/index.html'), function(err) {
-//         if (err) {
-//             console.log('monetchatRouters - GET not existing Exception : ', err);
-//             res.status(500).send(err)
-//         }
-//     })
-// })
-
-// router.post('/*', function(req, res) {
-//     console.log('monetchatRouters - POST not existing URL');
-//     res.sendFile(path.resolve('frontend/build/index.html'), function(err) {
-//       if (err) {
-//         console.log('monetchatRouters - POST not existing Exception : ', err);
-//         res.status(500).send(err)
-//       }
-//     })
-// })
-
 
 // 현재시간 yyyymmddhhmmss 형식으로 변경해주는 함수
 function dateFormat() {
