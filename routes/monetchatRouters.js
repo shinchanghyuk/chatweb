@@ -12,6 +12,10 @@ const uuid = require('uuid');
 // 데이터베이스 커넥션 파일
 const monetchatDB = require('../utils/databases.js');
 
+const baseUrl = process.env.base_url;
+const cors = require('cors');
+router.use(cors(baseUrl));
+
 // localhost:8080/monetchat/chat
 // monet 채팅서비스 메인화면
 router.post('/', (req, res) => {  
