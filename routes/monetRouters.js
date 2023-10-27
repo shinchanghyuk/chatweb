@@ -9,8 +9,9 @@ const emailAuthentication = require('../utils/emailAuthentication');
 const monetchatDB = require('../utils/databases.js');
 const webSocket = require('../utils/webSocketServer.js');
 
+const baseUrl = process.env.base_url;
 const cors = require('cors');
-router.use(cors('http://3.37.92.0'));
+router.use(cors(baseUrl));
 
 // // localhost:8080/notification
 // router.get('/notification', (req, res) => {

@@ -4,8 +4,10 @@ const path = require('path');
 
 const router = express.Router();
 
+const baseUrl = process.env.base_url;
 const cors = require('cors');
-router.use(cors('http://3.37.92.0'));
+router.use(cors(baseUrl));
+
 
 // localhost:8080
 router.get('/', (req, res) => {
