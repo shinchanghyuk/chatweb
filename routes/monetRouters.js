@@ -9,29 +9,13 @@ const emailAuthentication = require('../utils/emailAuthentication');
 const monetchatDB = require('../utils/databases.js');
 const webSocket = require('../utils/webSocketServer.js');
 
+const cors = require('cors');
+router.use(cors('http://3.37.92.0'));
 
 // // localhost:8080/notification
 // router.get('/notification', (req, res) => {
 //     console.log("monetRouters, notification, req.body : ", req.body);
 // });
-
-// 회원가입 화면에서 새로고침 시 동작
-router.get('/monetRegister', (req, res) => {
-    console.log("routers - monetRegister");
-    res.sendFile(path.resolve('frontend/build/index.html'));
-});
-
-// 메인화면에서 새로고침 시 동작
-router.get('/monetMain', (req, res) => {
-    console.log("routers - monetMain");
-    res.sendFile(path.resolve('frontend/build/index.html'));
-});
-
-// 아이디/비밀번호 찾기에서 새로고침 시 동작
-router.get('/monetForget', (req, res) => {
-    console.log("routers - monetForget");
-    res.sendFile(path.resolve('frontend/build/index.html'));
-});
 
 // localhost:8080/monetchat/user/userCheck
 // 사용자 아이디 중복체크 API

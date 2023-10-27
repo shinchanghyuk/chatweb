@@ -562,15 +562,4 @@ function MonetMain() {
   );
 };
 
-export default MonetMain; 
-
-
-// 할일
-// 비밀번호 잊었을 때 관련 페이지 생성(이메일로 인증하도록)
-
-// 토요일
-// 후 포트폴리오 작성
-// 후 AWS 서버 생성
-
-// 사용자가 마지막에 채팅 메세지 띄우기?
-// 없는 URL로 왔을 때 유효하지 않은 페이지? 메세지 후 로그인 화면 이동
+export default MonetMain;

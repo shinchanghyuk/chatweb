@@ -1,7 +1,5 @@
 const nodemailer = require('nodemailer');
 
-require('dotenv').config();
-
 // 설정 파일에서 이메일 설정 추출
 const emailUser = process.env.email_user;
 const emailPassword = process.env.email_password;
