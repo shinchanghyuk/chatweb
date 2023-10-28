@@ -2,9 +2,11 @@
 const createWebSocket = (userid, roomid) => {
   let ws;
 
+  const webSocketUrl = process.env.REACT_APP_WEBSOCKET_URL;
+
   // 웹 소켓 서버 주소
-  const wsServer = 'ws://localhost:8081?userid=' + userid + '&type=room&roomid=' + roomid;
-  const wsServerInit = 'ws://localhost:8081?userid=' + userid + '&type=user';
+  const wsServer = webSocketUrl + '?userid=' + userid + '&type=room&roomid=' + roomid;
+  const wsServerInit = webSocketUrl + '?userid=' + userid + '&type=user';
 
   if (roomid === undefined || roomid === '' || roomid.length === 0) {
     ws = new WebSocket(wsServerInit);
