@@ -1,10 +1,12 @@
 const WebSocket = require('ws');
 
 // 데이터베이스 커넥션 파일
-const monetchatDB = require('../utils/databases.js');
+const monetchatDB = require('./databases.js');
 
 // 웹 소켓 포트
 const wss = new WebSocket.Server({ port: 8081 });
+
+const logger = require('./log4js.js'); 
 
 // 접속한 사용자를 저장할 맵
 const clientsUser = new Map();
@@ -14,7 +16,7 @@ const clientsRoom = new Map();
 
 // 클라이언트가 연결될 때 실행
 wss.on('connection', (ws, req) => {
-    console.log("webSocketServer - connection");
+    logger.info("webSocketServer - connection");
 
     // userid, roomid URL에 들어있는 값 파싱
     const { userid, type, roomid} = req.url.split('?')[1].split('&').reduce((acc, param) => {
@@ -42,7 +44,7 @@ wss.on('connection', (ws, req) => {
             // 웹 소켓에 있는 사용자에게 자신이 online 인것을 알려줘야 하므로 사용자 웹 소켓으로 메세지 전송
             const userids = Array.from(clientsUser.keys());
 
-            console.log('webSocketServer - connection userids : ' + userids + ', length : ' + userids.length);
+            logger.info('webSocketServer - connection userids : ' + userids + ', length : ' + userids.length);
             let message = userid + "님이 로그인 하였습니다.";
             for(let i = 0; i < userids.length; i++) {        
                 if(clientsUser.has(userids[i])) {
@@ -52,11 +54,11 @@ wss.on('connection', (ws, req) => {
                         }
                     }
                 } else {
-                    console.log('webSocketServer - connection has not clientsUser');
+                    logger.info('webSocketServer - connection has not clientsUser');
                 }
             }
         } else { 
-            console.log('webSocketServer - connection already has clientsUser userid : ', userid);
+            logger.info('webSocketServer - connection already has clientsUser userid : ', userid);
         }
 
         clientsUser.get(userid).push(userInfo); 
@@ -77,7 +79,7 @@ wss.on('connection', (ws, req) => {
 
         monetchatDB.executeQuery(query, values, function(err, rows) {
             if(!err) {
-                console.log("webSocketServer - connection chatAccount user search : " + rows[0].totcnt);
+                logger.info("webSocketServer - connection chatAccount user search : " + rows[0].totcnt);
                 let username = rows[0].username;
                 let modifytime = rows[0].modifytime;
                 
@@ -99,7 +101,7 @@ wss.on('connection', (ws, req) => {
 
                     monetchatDB.executeQuery(query, values, function(err, rows) {
                         if(!err) {
-                            console.log("webSocketServer - connection chatMessage readCount Change");
+                            logger.info("webSocketServer - connection chatMessage readCount Change");
                             
                             // 채팅방에 들어온 사용자의 modifyTime을 현재시간으로 변경
                             const query = 'UPDATE t_chatAccount SET modifytime=? WHERE userid=? AND roomid=? AND status=1';
@@ -107,7 +109,7 @@ wss.on('connection', (ws, req) => {
 
                             monetchatDB.executeQuery(query, values, function(err, rows) {
                                 if(!err) {
-                                    console.log("webSocketServer - connection chatAccount modifytime Change");
+                                    logger.info("webSocketServer - connection chatAccount modifytime Change");
                                     
                                     let message = username + "님이 채팅방에 입장하였습니다.";
 
@@ -119,15 +121,15 @@ wss.on('connection', (ws, req) => {
                                                 client.ws.send(JSON.stringify({message: '채팅방에 입장하였습니다.'}));
                                             }
                                         } else {
-                                            console.log("webSocketServer - connection init message send client.ws.readyState : ", client.ws.readyState);
+                                            logger.info("webSocketServer - connection message send fail, client.ws.readyState : ", client.ws.readyState);
                                         }
                                     }
                                 } else {
-                                    console.log('webSocketServer - chatAccount modifytime Change executeQuery Exception  : ', err);
+                                    logger.error('webSocketServer - chatAccount modifytime Change executeQuery Exception  : ', err);
                                 }
                             });
                         } else { 
-                            console.log('webSocketServer - chatMessage readCount Change executeQuery Exception  : ', err);
+                            logger.error('webSocketServer - chatMessage readCount Change executeQuery Exception  : ', err);
                         }
                     });
                 }
@@ -135,8 +137,8 @@ wss.on('connection', (ws, req) => {
         });
     }
 
-    console.log('사용자 정보 : ', clientsUser);
-    console.log('채팅방 정보 : ', clientsRoom);
+    logger.info('사용자 정보 : ', clientsUser);
+    logger.info('채팅방 정보 : ', clientsRoom);
 
     // 클라이언트로부터 메시지를 받았을 때
     ws.on('message', (message) => {
@@ -145,15 +147,14 @@ wss.on('connection', (ws, req) => {
             message = message.toString('utf8'); // 'utf8' 인코딩을 사용하여 디코딩
         }
 
-        console.log('websocketServer - message : ', message.toString());
-        console.log('websocketServer - message : ', JSON.parse(message));
+        logger.info('webSocketServer - message : ', JSON.parse(message));
 
         let createtime = '';
         let chatUserList = '';
 
         // parsedMessage (userid, message)
         const parsedMessage = JSON.parse(message);
-        console.log('webSocketServer - message Parsed Message:', parsedMessage); 
+        logger.info('webSocketServer - message Parsed Message:', parsedMessage); 
 
         if(parsedMessage.createtime === undefined || parsedMessage.createtime === '' || parsedMessage.createtime.length === 0) { 
             createtime = dateFormat();
@@ -170,8 +171,7 @@ wss.on('connection', (ws, req) => {
             if(!err) {
                 if (rows.length > 0) { // 결과가 하나 이상의 행을 반환하는지 확인
                     chatUserList = rows.map(row => row.userid);
-                    console.log("webSocketServer - message chatMessage chatUserList : ", chatUserList);
-                    console.log("webSocketServer - message chatMessage length : " + chatUserList.length);
+                    logger.info("webSocketServer - message chatMessage chatUserList : ", chatUserList + " , length : " + chatUserList.length);
                 }
 
                 let accountCount = chatUserList.length;
@@ -183,11 +183,11 @@ wss.on('connection', (ws, req) => {
                 for(let i = 0; i < clientsRoomInfo.length; i++) {
                     const values = [createtime, parsedMessage.roomid, clientsRoomInfo[i].userid];
 
-                    console.log("webSocketServer - message chatAccount clientsRoomInfo[i].userid : ", clientsRoomInfo[i].userid);
+                    logger.info("webSocketServer - message chatAccount clientsRoomInfo[i].userid : ", clientsRoomInfo[i].userid);
 
                     monetchatDB.executeQuery(query, values, function(err, rows) {
                         if(!err) {
-                            console.log("webSocketServer - message chatAccount modifytime change executeQuery");
+                            logger.info("webSocketServer - message chatAccount modifytime change executeQuery");
 
                             if(i+1 === clientsRoomInfo.length) {
                                 // 채팅메세지 삽입 쿼리 
@@ -200,63 +200,63 @@ wss.on('connection', (ws, req) => {
                                     if(!err) {
                                         // 같은 채팅방에 있는 사용자에게 웹 소켓으로 메세지를 전송함
                                         const clientsRoomInfo = clientsRoom.get(parsedMessage.roomid);
-                                        console.log("webSocketServer - message chatMessage insert, clientsRoomInfo.length : " + clientsRoomInfo.length);
+                                        logger.info("webSocketServer - message chatMessage insert, clientsRoomInfo.length : " + clientsRoomInfo.length);
 
                                         for (const client of clientsRoomInfo) {
                                             if (client.ws !== null && client.ws.readyState === WebSocket.OPEN) {
                                                 if (client) {
                                                     const userid = client.userid;
 
-                                                    console.log("webSocketServer - message chatMessage insert userid : " + userid + ", parsedMessage.userid : " + parsedMessage.userid);
+                                                    logger.info("webSocketServer - message chatMessage insert userid : " + userid + ", parsedMessage.userid : " + parsedMessage.userid);
                                                     client.ws.send(JSON.stringify({ userid: parsedMessage.userid, username: parsedMessage.username, message: parsedMessage.message, 
                                                         createtime : createtime, readCount:clientsRoomInfo.length, accountCount}));
                                                 } else { 
-                                                    console.log("webSocketServer - message chatMessage insert client empty");
+                                                    logger.info("webSocketServer - message chatMessage insert client empty");
                                                 }
                                             } else { 
-                                                console.log("webSocketServer - message chatMessage insert fail");
+                                                logger.info("webSocketServer - message chatMessage insert fail");
                                             }
                                         }
                                         
                                         let newMessage = '새로운 메세지가 도착하였습니다.';
-                                        console.log("webSocketServer - message title :" + parsedMessage.title);
+                                        logger.info("webSocketServer - message title :" + parsedMessage.title);
                                         for(clientUser of chatUserList) {
                                             if(clientsUser.has(clientUser)) {
                                                 if(clientUser !== parsedMessage.userid) {
                                                     if (clientsUser.get(clientUser)[0].ws !== null && clientsUser.get(clientUser)[0].ws.readyState === 1) {
                                                         clientsUser.get(clientUser)[0].ws.send(JSON.stringify({ roomid:parsedMessage.roomid, title:parsedMessage.title, senderid:parsedMessage.userid, message: newMessage, createtime : createtime}));
                                                     } else {
-                                                        console.log("webSocketServer - message clientuser not webSocket connection");
+                                                        logger.info("webSocketServer - message clientuser not webSocket connection");
                                                     }
                                                 } else {
-                                                    console.log("webSocketServer - message clientuser and sender is equals");
+                                                    logger.info("webSocketServer - message clientuser and sender is equals");
                                                 }
                                             } else {
-                                                console.log("webSocketServer - message user is not Login Status");
+                                                logger.info("webSocketServer - message user is not Login Status");
                                             }
                                         }
                                     } else { 
-                                        console.log('webSocketServer - message chatMessage executeQuery Exception  : ', err);
+                                        logger.error('webSocketServer - message chatMessage executeQuery Exception  : ', err);
                                     }
                                 });
                             }
                         } else {
-                            console.log("webSocketServer - message chatAccount modifytime change executeQuery Exception : ", err);
+                            logger.error("webSocketServer - message chatAccount modifytime change executeQuery Exception : ", err);
                         }
                     });
                 }
             } else {
-                console.log('webSocketServer - message chatMessage user search executeQuery Exception  : ', err);
+                logger.error('webSocketServer - message chatMessage user search executeQuery Exception  : ', err);
             }
         });
     });
 
   // 클라이언트와 연결이 끊겼을 때, 채팅방 또는 사용자의 웹 소켓 끊어짐을 구분해야함
   ws.on('close', () => {
-    console.log("webSocketServer - close, userid : " + userid + ", type : " + type);
+    logger.info("webSocketServer - close, userid : " + userid + ", type : " + type);
 
     if(type === 'user') {
-        console.log("webSocketServer - close clientUser userid : " + userid);
+        logger.info("webSocketServer - close clientUser userid : " + userid);
         if (clientsUser.has(userid)) {
 
             // 웹 소켓에 있는 사용자에게 자신이 offline 인것을 알려줘야 하므로 사용자 웹 소켓으로 메세지 전송
@@ -271,13 +271,13 @@ wss.on('connection', (ws, req) => {
                 }
             }
 
-            console.log("webSocketServer - close clientUser has userid :" + userid + ", delete");
+            logger.info("webSocketServer - close clientUser has userid :" + userid + ", delete");
             clientsUser.delete(userid);
         } else {
-            console.log("webSocketServer - close clientUser empty");
+            logger.info("webSocketServer - close clientUser empty");
         }
     } else if(type === 'room') {
-        console.log('webSocketServer - close roomid : ' + roomid);
+        logger.info('webSocketServer - close roomid : ' + roomid);
         if (clientsRoom.has(roomid)) {
             const roomInfoArray = clientsRoom.get(roomid); // 해당 roomid의 배열 가져오기
                 
@@ -303,14 +303,14 @@ wss.on('connection', (ws, req) => {
         
             monetchatDB.executeQuery(query, values, function(err, rows) {
                 if(!err) {
-                    console.log("webSocketServer - close chatAccount modifytime Change");
+                    logger.info("webSocketServer - close chatAccount modifytime Change");
                     
                 } else {
-                    console.log("webSocketServer - close chatAccount modifytime Change Exception : ", err);
+                    logger.error("webSocketServer - close chatAccount modifytime Change Exception : ", err);
                 }
             });
         } else { 
-            console.log("ws - close : clientsRoom not exist");
+            logger.info("ws - close : clientsRoom not exist");
         }
     }
   });
@@ -332,7 +332,7 @@ function dateFormat() {
 
 // 사용자의 상태를 검색
 function userConnectionSearch(userList) {
-    console.log('webSocketServer - userConnectionSearch, userList : ', userList);
+    logger.info('webSocketServer - userConnectionSearch, userList : ', userList);
 
     return new Promise((resolve, reject) => {
         const updatedUserList = userList.map(user => {
@@ -351,7 +351,8 @@ function userConnectionSearch(userList) {
 
 // 사용자의 유무 확인(중복 로그인)
 function userWebsocketSearch(userid) {
-    console.log('webSocketServer - userWebsocketSearch, userid : ', userid);
+    logger.info('webSocketServer - userWebsocketSearch, userid : ', userid);
+
     let response = false;
     return new Promise((resolve, reject) => {
         if (clientsUser.has(userid)) {
@@ -363,14 +364,14 @@ function userWebsocketSearch(userid) {
             response = false;        
         }
 
-        console.log('webSocketServer - userWebsocketSearch, clientsUser : ', response);
+        logger.info('webSocketServer - userWebsocketSearch, clientsUser : ', response);
 
         resolve(response);
     });
 }
 
 function titleModifyMessageSend(roomid, title, userid) {
-    console.log('webSocketServer - titleModifyMessageSend, roomid : ' + roomid);
+    logger.info('webSocketServer - titleModifyMessageSend, roomid : ' + roomid);
 
     return new Promise((resolve, reject) => {
     
@@ -388,7 +389,7 @@ function titleModifyMessageSend(roomid, title, userid) {
                         client.ws.send(JSON.stringify({ roomid:roomid, title: title, message: message}));
                     }
                 } else {
-                    console.log("webSocketServer - titleModifyMessageSend client.ws.readyState : ", client.ws.readyState);
+                    logger.info("webSocketServer - titleModifyMessageSend client.ws.readyState : ", client.ws.readyState);
                 }
             }
 
@@ -396,9 +397,10 @@ function titleModifyMessageSend(roomid, title, userid) {
             const otherUserPromises = [otherUserMessageSend(chatUser, roomid, userid, title, message, '')];
 
             Promise.all(otherUserPromises).then(() => {
-                console.log('webSocketServer - titleModifyMessageSend Promise');
+                logger.info('webSocketServer - titleModifyMessageSend Promise');
                 resolve();
             }).catch((error) => {
+                logger.error('webSocketServer - titleModifyMessageSend Promise Exception : ', error);
                 reject(error);
             });
         }
@@ -406,7 +408,7 @@ function titleModifyMessageSend(roomid, title, userid) {
 }
 
 function exitMessageSend(roomid, userid, username, accountCount) { 
-    console.log('webSocketServer - exitMessageSend, roomid : ' + roomid);
+    logger.info('webSocketServer - exitMessageSend, roomid : ' + roomid);
 
     return new Promise((resolve, reject) => {
 
@@ -422,7 +424,7 @@ function exitMessageSend(roomid, userid, username, accountCount) {
             
             monetchatDB.executeQuery(query, values, function(err, rows) {
                 if(!err) {
-                    console.log('webSocketServer - exitMessageSend chatRoom exit message Insert executeQuery');
+                    logger.info('webSocketServer - exitMessageSend chatRoom exit message Insert executeQuery');
 
                     // 채팅방에 있는 사용자에게 나갔다는 메세지 전송
                     for (const client of clientsRoomInfo) {
@@ -434,33 +436,37 @@ function exitMessageSend(roomid, userid, username, accountCount) {
                                     createtime : createtime, readCount:clientsRoomInfo.length, count:accountCount}));
                             }
                         } else {
-                            console.log("webSocketServer - exitMessageSend client.ws.readyState : ", client.ws.readyState);
+                            logger.info("webSocketServer - exitMessageSend client.ws.readyState : ", client.ws.readyState);
                         }
                     }
 
-                    console.log('webSocketServer - exitMessageSend otherUserMessageSend before');
+                    logger.info('webSocketServer - exitMessageSend otherUserMessageSend before');
 
                     // 채팅방에 있는 사용자이지만, 로그인만 되어있는 사용자에게 보내야함
                     const otherUserPromises = [otherUserMessageSend(chatUser, roomid, userid, '', message, accountCount)];
 
                     Promise.all(otherUserPromises).then(() => {
-                        console.log('webSocketServer - exitMessageSend Promise');
+                        logger.info('webSocketServer - exitMessageSend Promise');
                         resolve();
                     }).catch((error) => {
+                        logger.error('webSocketServer - exitMessageSend Promise Exception : ', error);
                         reject(error);
                     });  
                 } else { 
-                    console.log('webSocketServer - exitMessageSend chatRoom exit message Insert executeQuery Exception : ', err);
+                    logger.error('webSocketServer - exitMessageSend chatRoom exit message Insert executeQuery Exception : ', err);
                     reject(err);
                 }
             });
+        } else { 
+            logger.info("webSocketServer - exitMessageSend clientsRoomInfo empty");
+            resolve();
         }
     });
 }
 
 // 채팅방에서 다른 사용자 초대했을 때 동작
 function inviteMessageSend(roomid, title, userid, username) { 
-    console.log('webSocketServer - inviteMessageSend, roomid : ' + roomid + ', userid : ' + userid + ', username : ' + username );
+    logger.info('webSocketServer - inviteMessageSend, roomid : ' + roomid + ', userid : ' + userid + ', username : ' + username );
 
     return new Promise((resolve, reject) => {
 
@@ -471,7 +477,7 @@ function inviteMessageSend(roomid, title, userid, username) {
         monetchatDB.executeQuery(query, values, function(err, rows) {
             if(!err) {
                 let accountCount = rows[0].totcnt;
-                console.log('webSocketServer - inviteMessageSend chatAccount search executeQuery');
+                logger.info('webSocketServer - inviteMessageSend chatAccount search executeQuery');
      
                 let createtime = dateFormat();
                 let message = username + "님이 채팅방에 초대되었습니다.";
@@ -484,7 +490,7 @@ function inviteMessageSend(roomid, title, userid, username) {
 
                 monetchatDB.executeQuery(query, values, function(err, rows) {
                     if(!err) {
-                        console.log('webSocketServer - inviteMessageSend chatMessage insert executeQuery');
+                        logger.info('webSocketServer - inviteMessageSend chatMessage insert executeQuery');
 
                         // 채팅방에 있는 사용자에게 초대되었다는 메세지 전송
                         for (const client of clientsRoomInfo) {
@@ -495,7 +501,7 @@ function inviteMessageSend(roomid, title, userid, username) {
                                         createtime : createtime, readCount:clientsRoomInfo.length, count:accountCount}));
                                 }
                             } else {
-                                console.log("webSocketServer - inviteMessageSend clientsRoom ws.readyState : ", client.ws.readyState);
+                                logger.info("webSocketServer - inviteMessageSend clientsRoom ws.readyState : ", client.ws.readyState);
                             }
                         }
                         
@@ -503,8 +509,9 @@ function inviteMessageSend(roomid, title, userid, username) {
                         const otherUserPromises = [otherUserMessageSend(chatUser, roomid, userid, title, message, accountCount)];
 
                         Promise.all(otherUserPromises).then(() => {
-                            console.log('webSocketServer - inviteMessageSend Promise');
+                            logger.info('webSocketServer - inviteMessageSend Promise');
                         }).catch((error) => {
+                            logger.error('webSocketServer - inviteMessageSend Promise Exception : ', error);
                             reject(error);
                         });  
 
@@ -516,18 +523,18 @@ function inviteMessageSend(roomid, title, userid, username) {
                                 clientsUser.get(userid)[0].ws.send(JSON.stringify({ roomid:roomid, title:title, message: message, count: accountCount, createtime: createtime}));
                             }
                         } else {
-                            console.log('webSocketServer - inviteMessageSend clientsUser empty');
+                            logger.info('webSocketServer - inviteMessageSend clientsUser empty');
                         }
                             
-                        console.log('webSocketServer - inviteMessageSend chatMessage insert resolve');
+                        logger.info('webSocketServer - inviteMessageSend chatMessage insert resolve');
                         resolve();
                     } else {
-                        console.log("webSocketServer - inviteMessageSend not user in chat send Exception : ", err);
+                        logger.error("webSocketServer - inviteMessageSend not user in chat send Exception : ", err);
                         reject(err);
                     }
                 });
             } else {
-                console.log('webSocketServer - inviteMessageSend chatAccount search executeQuery Exception : ', err);
+                logger.error('webSocketServer - inviteMessageSend chatAccount search executeQuery Exception : ', err);
             }
         });
     });
@@ -537,7 +544,7 @@ function otherUserMessageSend(chatUser, roomid, userid, title, message, accountC
     return new Promise((resolve, reject) => {
 
         if(chatUser !== undefined && chatUser !== null && chatUser !== '') {
-            console.log("webSocketServer - otherUserMessageSend chatUser : ", chatUser);
+            logger.info("webSocketServer - otherUserMessageSend chatUser : ", chatUser);
             
             chatUser.push(userid);
 
@@ -558,7 +565,7 @@ function otherUserMessageSend(chatUser, roomid, userid, title, message, accountC
 
             monetchatDB.executeQuery(query, values, function(err, rows) {
                 if(!err) {
-                    console.log('webSocketServer - otherUserMessageSend executeQuery');
+                    logger.info('webSocketServer - otherUserMessageSend executeQuery');
                     
                     for(let i = 0; i < rows.length; i++) {
                         if(clientsUser.has(rows[i].userid)) {
@@ -570,12 +577,13 @@ function otherUserMessageSend(chatUser, roomid, userid, title, message, accountC
 
                     resolve();
                 } else {
-                    console.log("webSocketServer - otherUserMessageSend Exception : ", err);
+                    logger.error("webSocketServer - otherUserMessageSend Exception : ", err);
                     reject();
                 }
             });
         } else {
-            console.log("webSocketServer - otherUserMessageSend chatUser empty");
+            logger.info("webSocketServer - otherUserMessageSend chatUser empty");
+            resolve();
         }
     });
 }

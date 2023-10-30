@@ -12,6 +12,8 @@ const router = require('./routes/routers.js');
 const monetRouter = require('./routes/monetRouters.js');
 const monetChatRouter = require('./routes/monetchatRouters.js');
 
+const logger = require('./utils/log4js.js'); 
+
 // JSON 통신 및 form-urlencoded 통신을 받는다는 설정
 app.use(express.json()); 
 app.use(express.urlencoded( {extended : false } ));
@@ -35,5 +37,5 @@ app.use(express.static(path.join(__dirname, 'frontend/build')));
 // app.use(express.static(path.join(__dirname, 'public')));
   
 app.listen(port, () => {
-    console.log(`서버가 포트 ${port}에서 실행 중입니다.`);
+    logger.info('app listen port : ' + port);
 });

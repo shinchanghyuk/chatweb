@@ -1,5 +1,7 @@
 const mysql = require('mysql');
 
+const logger = require('./log4js.js'); 
+
 // 설정 파일에서 데이터베이스 연결 정보 추출
 const dbHost = process.env.database_host;
 const dbUser = process.env.database_user;
@@ -20,9 +22,9 @@ const connection = mysql.createConnection({
 function connect() {
   connection.connect((err) => {
     if (err) {
-      console.error('databases - connection Exception : ', err);
+      logger.error('databases - connection Exception : ', err);
     } else {
-      console.log('databases - connection success');
+      logger.info('databases - connection success');
     }
   });
 }
@@ -31,7 +33,7 @@ function connect() {
 function executeQuery(query, values, callback) {
   connection.query(query, values, (err, rows, fields) => {
     if (err) {
-      console.error('databases executeQuery Exception : ', err);
+      logger.error('databases executeQuery Exception : ', err);
       callback(err, null, null);
     } else {
       callback(null, rows, fields);

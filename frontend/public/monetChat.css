@@ -195,8 +195,8 @@
 
 
 /* 메인화면 */
-.main-container { 
-    padding: 15px;
+.main-container {
+    padding: 45px 15px 15px 15px
 }
 
 .main-title {
