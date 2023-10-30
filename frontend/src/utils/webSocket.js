@@ -7,7 +7,7 @@ const createWebSocket = (userid, roomid) => {
   // 웹 소켓 서버 주소
   const wsServer = webSocketUrl + '?userid=' + userid + '&type=room&roomid=' + roomid;
   const wsServerInit = webSocketUrl + '?userid=' + userid + '&type=user';
-
+  
   if (roomid === undefined || roomid === '' || roomid.length === 0) {
     ws = new WebSocket(wsServerInit);
   } else {

@@ -9,19 +9,42 @@ const emailAuthentication = require('../utils/emailAuthentication');
 const monetchatDB = require('../utils/databases.js');
 const webSocket = require('../utils/webSocketServer.js');
 
+const logger = require('../utils/log4js.js'); 
+
 const baseUrl = process.env.base_url;
 const cors = require('cors');
 router.use(cors(baseUrl));
 
-// // localhost:8080/notification
-// router.get('/notification', (req, res) => {
-//     console.log("monetRouters, notification, req.body : ", req.body);
+
+// localhost:8080
+// router.get('/', (req, res) => {
+//     console.log("monetRouters, START");
+//     res.sendFile(path.resolve('frontend/build/index.html'));
 // });
+
+// // 회원가입 화면에서 새로고침 시 동작
+// router.get('/monetRegister', (req, res) => {
+//     console.log("monetRouters - monetRegister");
+//     res.sendFile(path.resolve('frontend/build/index.html'));
+// });
+
+// // 메인화면에서 새로고침 시 동작
+// router.get('/monetMain', (req, res) => {
+//     console.log("monetRouters - monetMain");
+//     res.sendFile(path.resolve('frontend/build/index.html'));
+// });
+
+// // 아이디/비밀번호 찾기에서 새로고침 시 동작
+// router.get('/monetForget', (req, res) => {
+//     console.log("monetRouters - monetForget");
+//     res.sendFile(path.resolve('frontend/build/index.html'));
+// });
+
 
 // localhost:8080/monetchat/user/userCheck
 // 사용자 아이디 중복체크 API
 router.post('/userCheck', (req, res) => {
-    console.log("monetRouters - userCheck, req.body : ", req.body);
+    logger.info("monetRouters - userCheck, req.body : ", req.body);
 
     // 중복체크 관련 데이터베이스 작업
     const query = 'SELECT COUNT(*) AS totcnt from t_account where userid=?';
@@ -29,15 +52,13 @@ router.post('/userCheck', (req, res) => {
 
     monetchatDB.executeQuery(query, values, function(err, rows) {
         if(!err) {
-            console.log('monetRouters - userCheck executeQuery rows[0].totcnt  : ', rows[0].totcnt);
-
             if(rows[0].totcnt === 0) {
                 res.status(200).send('userCheck success');
             } else {
                 res.status(200).send('userCheck fail');   
             }
         } else {
-            console.log('monetRouters - userCheck executeQuery Exception  : ', err);
+            logger.error('monetRouters - userCheck executeQuery Exception  : ', err);
             res.status(500).send(err);
         }
     });
@@ -46,7 +67,7 @@ router.post('/userCheck', (req, res) => {
 // localhost:8080/monetchat/user/emailAuthentication
 // 사용자 이메일 인증 API
 router.post('/emailAuthentication', (req, res) => {
-    console.log("monetRouters - emailAuthentication, req.body : ", req.body);
+    logger.info("monetRouters - emailAuthentication, req.body : ", req.body);
 
     let emailcode = getGenerateEmailCode();
 
@@ -58,15 +79,13 @@ router.post('/emailAuthentication', (req, res) => {
         monetchatDB.executeQuery(query, values, function(err, rows) {
             if(!err) {
                 if(rows[0].totcnt !== 1) {
-                    console.log("monetRouters - emailAuthentication, userData invaild");
                     res.status(200).send('userData invaild');
                 } else {
-                    console.log("monetRouters - emailAuthentication, userData vaild, emailSend");
+                    logger.info("monetRouters - emailAuthentication, userData vaild, emailSend");
                     emailSend(req.body.userid, req.body.email, emailcode).then(result => {
-                        console.log('monetRouters - emailAuthentication, result : ', result);
                         res.status(200).send(result);
                     }).catch(error => {
-                        console.error('monetRouters - emailAuthentication Exception : ', error);
+                        logger.error('monetRouters - emailAuthentication Exception : ', error);
                         res.status(500).send(error);
                     });
 
@@ -75,10 +94,9 @@ router.post('/emailAuthentication', (req, res) => {
         });
     } else {
         emailSend(req.body.userid, req.body.email, emailcode).then(result => {
-            console.log('monetRouters - emailAuthentication, result : ', result);
             res.status(200).send(result);
         }).catch(error => {
-            console.error('monetRouters - emailAuthentication Exception : ', error);
+            logger.error('monetRouters - emailAuthentication Exception : ', error);
             res.status(500).send(error);
         });
     }
@@ -99,7 +117,7 @@ function emailSend(userid, email, emailcode) {
                     result = 'emailcode send success';
                     resolve(result);
                 } else {
-                    console.log('monetRouters - emailAuthentication chatmessage - insert executeQuery Exception  : ', err);
+                    logger.error('monetRouters - emailAuthentication chatmessage - insert executeQuery Exception  : ', err);
                     reject(err);
                 }
             });
@@ -114,7 +132,7 @@ function emailSend(userid, email, emailcode) {
 // localhost:8080/monetchat/user/emailVerify
 // 사용자 이메일 인증코드 확인 API
 router.post('/emailVerify', function(req, res) {
-    console.log("monetRouters - emailVerify, req.body : ", req.body);
+    logger.info("monetRouters - emailVerify, req.body : ", req.body);
 
     // 제일 최신 이메일 데이터 가져오기
     let query = 'SELECT COUNT(*) AS totcnt, authenticationCount FROM t_emailAuthentication WHERE status=1 AND userid=? AND email=? AND emailcode=? ORDER BY createtime DESC LIMIT 1';
@@ -127,7 +145,7 @@ router.post('/emailVerify', function(req, res) {
             let message = '';
             let authenticationCount = rows[0].authenticationCount;
 
-            console.log("monetRouters - emailVerify, totcnt : " + rows[0].totcnt + ", authenticationCount : " + authenticationCount);
+            logger.info("monetRouters - emailVerify, totcnt : " + rows[0].totcnt + ", authenticationCount : " + authenticationCount);
 
             if(authenticationCount < 4) { 
                 if(rows[0].totcnt === 1) {
@@ -141,7 +159,7 @@ router.post('/emailVerify', function(req, res) {
             
             // 해당 이메일에 대한 인증번호를 마쳤기 때문에 그 이전의 시도한 이메일 데이터가 있다면 그 또한 status를 0으로 변경함
             if(result) {
-                console.log("monetRouters - emailVerify, authentication success");
+                logger.info("monetRouters - emailVerify, authentication success");
 
                 query = 'UPDATE t_emailAuthentication SET status=0 WHERE status=1 AND userid=? AND email=?';
                 values = [req.body.userid, req.body.email];
@@ -152,7 +170,7 @@ router.post('/emailVerify', function(req, res) {
                     message = 'email verify reset';
                 }
             } else {
-                console.log("monetRouters - emailVerify, authentication fail");
+                logger.info("monetRouters - emailVerify, authentication fail");
 
                 query = 'UPDATE t_emailAuthentication SET authenticationCount=? WHERE status=1 AND userid=? AND email=?';
                 values = [authenticationCount, req.body.userid, req.body.email];
@@ -161,15 +179,14 @@ router.post('/emailVerify', function(req, res) {
 
             monetchatDB.executeQuery(query, values, function(err, rows) {
                 if(!err) {
-                    console.log("monetRouters - emailVerify, status modify executeQuery");
                     res.status(200).send(message);
                 } else {
-                    console.log("monetRouters - emailVerify, status modify executeQuery Exception : ", err);
+                    logger.error("monetRouters - emailVerify, status modify executeQuery Exception : ", err);
                     res.status(500).send(err);
                 }
             });
         } else {
-            console.log('monetRouters - emailVerify - insert executeQuery Exception  : ', err);
+            logger.error('monetRouters - emailVerify - insert executeQuery Exception  : ', err);
             res.status(500).send(err);
         }
     });
@@ -178,7 +195,7 @@ router.post('/emailVerify', function(req, res) {
 // localhost:8080/monetchat/user/signUp
 // 사용자 회원가입 API
 router.post('/signUp', (req, res) => {
-    console.log("monetRouters - signUp, req.body : ", req.body);
+    logger.info("monetRouters - signUp, req.body : ", req.body);
 
      // 회원가입 쿼리 및 데이터
      const query = 'INSERT INTO t_account (userid, username, email, password, createtime) VALUES (?, ?, ?, ?, ?)';
@@ -189,7 +206,7 @@ router.post('/signUp', (req, res) => {
          if(!err) {
             res.status(200).send('signUp success');
          } else { 
-            console.log('monetRouters - signUp executeQuery Exception  : ', err);
+            logger.error('monetRouters - signUp executeQuery Exception  : ', err);
             res.status(500).send(err);
          }
      });
@@ -198,7 +215,7 @@ router.post('/signUp', (req, res) => {
 // localhost:8080/monetchat/user/signIn
 // 사용자 로그인 API
 router.post('/signIn', (req, res) => {
-    console.log("monetRouters - signIn, req.body : ", req.body);
+    logger.info("monetRouters - signIn, req.body : ", req.body);
 
     // 중복체크 관련 데이터베이스 작업
     const query = 'SELECT COUNT(*) AS totcnt, username, usertype FROM t_account WHERE userid=? AND password=?';
@@ -208,11 +225,9 @@ router.post('/signIn', (req, res) => {
 
     monetchatDB.executeQuery(query, values, function(err, rows) {
         if(!err) {
-            console.log("monetRouters - signIn totcnt : " + rows[0].totcnt);
+            logger.info("monetRouters - signIn totcnt : " + rows[0].totcnt);
             if(rows[0].totcnt == 1) {
                 let result = rows[0];
-                console.log("monetRouters - signIn result : ", result);
-
                 webSocket.userWebsocketSearch(req.body.userid).then(response => {
                     if(!response) {
                         message = 'signIn success(normal)'
@@ -222,14 +237,14 @@ router.post('/signIn', (req, res) => {
                     // res.status(200).send('signIn success');
                     res.status(200).json({ username : result.username, usertype : result.usertype, message : message});
                 }).catch(error => {
-                    console.error('monetchatRouters, Updated user list Exception : ', error);
+                    logger.error('monetchatRouters, Updated user list Exception : ', error);
                 });
             } else {
                 message = 'signIn fail';
                 res.status(200).json({message: message}); 
             }
         } else {
-            console.log('monetRouters - signIn executeQuery Exception  : ', err);
+            logger.error('monetRouters - signIn executeQuery Exception  : ', err);
             res.status(500).send(err);
         }
     });
@@ -238,7 +253,7 @@ router.post('/signIn', (req, res) => {
 // localhost:8080/monetchat/user/signIdFind
 // 사용자 아이디 찾기 API
 router.post('/signIdFind', (req, res) => {
-    console.log("monetRouters - signIdFind, req.body : ", req.body);
+    logger.info("monetRouters - signIdFind, req.body : ", req.body);
 
     const query = 'SELECT COUNT(*) AS totcnt, userid FROM t_account WHERE username=? AND email=? AND status=1';
     const values = [req.body.username, req.body.email];
@@ -247,11 +262,9 @@ router.post('/signIdFind', (req, res) => {
 
     monetchatDB.executeQuery(query, values, function(err, rows) {
         if(!err) {
-            console.log("monetRouters - signIdFind totcnt : " + rows[0].totcnt);
+            logger.info("monetRouters - signIdFind totcnt : " + rows[0].totcnt);
             if(rows[0].totcnt == 1) {
                 let result = rows[0];
-                console.log("monetRouters - signIdFind result : ", result);
-
                 message = 'signIdFind success'
 
                 res.status(200).json({ userid : result.userid, message : message});
@@ -260,7 +273,7 @@ router.post('/signIdFind', (req, res) => {
                 res.status(200).json({message: message}); 
             }
         } else {
-            console.log('monetRouters - signIn executeQuery Exception  : ', err);
+            logger.error('monetRouters - signIn executeQuery Exception  : ', err);
             res.status(500).send(err);
         }
     });
@@ -269,7 +282,7 @@ router.post('/signIdFind', (req, res) => {
 // localhost:8080/monetchat/user/signPwFind
 // 사용자 비밀번호 재설정 API
 router.post('/signPwSetting', (req, res) => {
-    console.log("monetRouters - signPwSetting, req.body : ", req.body);
+    logger.info("monetRouters - signPwSetting, req.body : ", req.body);
 
     const query = 'SELECT COUNT(*) AS totcnt, userid FROM t_account WHERE userid=? AND status=1';
     const values = [req.body.userid];
@@ -278,19 +291,17 @@ router.post('/signPwSetting', (req, res) => {
 
     monetchatDB.executeQuery(query, values, function(err, rows) {
         if(!err) {
-            console.log("monetRouters - signPwSetting totcnt : " + rows[0].totcnt);
+            logger.info("monetRouters - signPwSetting totcnt : " + rows[0].totcnt);
             if(rows[0].totcnt == 1) {
                 const query = 'UPDATE t_account SET password=? WHERE userid=? AND status=1';
                 const values = [req.body.password, req.body.userid];
 
                 monetchatDB.executeQuery(query, values, function(err, rows) {
                     if(!err) {
-                        console.log('monetRouters - signPwSetting executeQuery');
-
                         message = 'signPwSetting success'
                         res.status(200).json({ message : message});
                     } else {
-                        console.log('monetRouters - signPwSetting UPDATE executeQuery Exception  : ', err);
+                        logger.error('monetRouters - signPwSetting UPDATE executeQuery Exception  : ', err);
                         res.status(500).send(err);
                     }
                 });
@@ -299,7 +310,7 @@ router.post('/signPwSetting', (req, res) => {
                 res.status(200).json({message: message}); 
             }
         } else {
-            console.log('monetRouters - signPwSetting executeQuery Exception  : ', err);
+            logger.error('monetRouters - signPwSetting executeQuery Exception  : ', err);
             res.status(500).send(err);
         }
     });

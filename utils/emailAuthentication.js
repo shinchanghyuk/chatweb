@@ -1,5 +1,7 @@
 const nodemailer = require('nodemailer');
 
+const logger = require('./log4js.js'); 
+
 // 설정 파일에서 이메일 설정 추출
 const emailUser = process.env.email_user;
 const emailPassword = process.env.email_password;
@@ -25,12 +27,12 @@ const sendAuthenticationEmail = async (email, code) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('emailAuthentcation - email send result : ', info.response);
+    logger.info('emailAuthentcation - email send result : ', info.response);
 
     result = true;
 
   } catch (error) {
-    console.error('emailAuthentcation - email send Exception : ', error);
+    logger.error('emailAuthentcation - email send Exception : ', error);
     result = false;
   }
 
